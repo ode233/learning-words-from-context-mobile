@@ -3,6 +3,8 @@ import {
   YoudaoFreeTranslator,
 } from "../localVideoPlayer/translate/translator";
 
+import AnkiDroid from "react-native-ankidroid";
+
 class UserConfig {
   public caiyunToken = "";
 }
@@ -36,7 +38,8 @@ function initUserConfig() {
 }
 
 async function initAnkiConfig() {
-  // TODO: initAnkiConfig
+  let isApiAvailable = await AnkiDroid.isApiAvailable();
+  console.log(isApiAvailable);
 }
 
 let translator = new YoudaoFreeTranslator();
