@@ -5,24 +5,26 @@ interface ContextFromVideo {
   imgDataUrl: string;
 }
 
-class LocalVideo {
-  private video: Video;
+class LocalVideoClass {
+  public video: Video | undefined;
 
-  public constructor(video: Video) {
+  public constructor() {}
+
+  public init(video: Video): void {
     this.video = video;
   }
 
   public seek(time: number): void {
-    this.video.setPositionAsync(time * 1000);
+    this.video!.setPositionAsync(time * 1000);
   }
   public play(): void {
-    this.video.playAsync;
+    this.video!.playAsync;
   }
   public pause(): void {
-    this.video.pauseAsync();
+    this.video!.pauseAsync();
   }
   public async getCurrentTime(): Promise<number | null> {
-    let status = await this.video.getStatusAsync();
+    let status = await this.video!.getStatusAsync();
     if (status.isLoaded) {
       return status.positionMillis / 1000;
     }
@@ -30,7 +32,7 @@ class LocalVideo {
   }
 
   public setOntimeupdate(f: any): void {
-    this.video.setOnPlaybackStatusUpdate(f);
+    this.video!.setOnPlaybackStatusUpdate(f);
   }
 
   // all time unit is second
@@ -69,4 +71,4 @@ class LocalVideo {
   }
 }
 
-export { LocalVideo };
+export { LocalVideoClass };

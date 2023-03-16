@@ -6,7 +6,7 @@ interface SubtitleSelectionChangeEvent {
   sentence: string;
 }
 
-function SubtitleContainer() {
+function Subtitle() {
   const [nowSubtitle, setNowSubtitle] = useState("please add subtitle");
 
   const onSubtitleSelectionChange = async (event: {
@@ -50,4 +50,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export { SubtitleSelectionChangeEvent, SubtitleContainer };
+export { SubtitleSelectionChangeEvent, Subtitle };

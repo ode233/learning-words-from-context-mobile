@@ -40,6 +40,13 @@ function initUserConfig() {
 async function initAnkiConfig() {
   let isApiAvailable = await AnkiDroid.isApiAvailable();
   console.log(isApiAvailable);
+  await AnkiDroid.requestPermission();
+  let permission = await AnkiDroid.checkPermission();
+  console.log(permission);
+  let deckList = await AnkiDroid.getDeckList();
+  console.log(deckList);
+  let modelList = await AnkiDroid.getModelList();
+  console.log(modelList);
 }
 
 let translator = new YoudaoFreeTranslator();

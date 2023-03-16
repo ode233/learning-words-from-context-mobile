@@ -8,7 +8,7 @@ import {
   DeviceEventEmitter,
 } from "react-native";
 import { translator } from "../../userConfig/userConfig";
-import { SubtitleSelectionChangeEvent } from "../subtitle/subtitleContainer";
+import { SubtitleSelectionChangeEvent } from "../subtitle/subtitle";
 
 class PopupAttrs {
   public dictLoading = true;
