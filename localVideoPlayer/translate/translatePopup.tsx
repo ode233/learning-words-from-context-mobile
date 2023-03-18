@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ScrollView, View, Text, Button, StyleSheet, DeviceEventEmitter } from 'react-native';
 import { translator } from '../../userConfig/userConfig';
-import { SubtitleSelectionChangeEvent } from '../subtitle/subtitle';
+import { SubtitleSelectionChangeData } from '../subtitle/subtitle';
+import { ContextFromVideo } from '../video/localVideoClass';
 
 class TranslatePopupAttrs {
     public dictLoading = true;
@@ -28,20 +29,36 @@ class TranslatePopupAttrs {
 export function TranslatePopup() {
     const [popupAttrs, setPopupAttrs] = useState(new TranslatePopupAttrs());
     useEffect(() => {
-        DeviceEventEmitter.addListener('onSubtitleSelectionChange', async (event: SubtitleSelectionChangeEvent) => {
+        DeviceEventEmitter.addListener('onSubtitleSelectionChange', async (data: SubtitleSelectionChangeData) => {
             let newPopupAttrs = new TranslatePopupAttrs();
-            newPopupAttrs.text = event.text;
+            newPopupAttrs.text = data.text;
             newPopupAttrs.textTranslate = await translator.translate(newPopupAttrs.text);
-            newPopupAttrs.sentence = event.sentence;
+            newPopupAttrs.sentence = data.sentence;
             newPopupAttrs.sentenceTranslate = await translator.translate(newPopupAttrs.sentence);
             newPopupAttrs.dictDisplay = 'flex';
             setPopupAttrs(newPopupAttrs);
         });
 
+        DeviceEventEmitter.addListener('onGetContextFromVideoFinish', async (data: ContextFromVideo) => {
+            let newPopupAttrs = new TranslatePopupAttrs();
+            console.log(data.voiceDataUrl);
+        });
+
         return () => {
             DeviceEventEmitter.removeAllListeners('onSubtitleSelectionChange');
+            DeviceEventEmitter.removeAllListeners('onGetContextFromVideoFinish');
         };
     }, []);
+
+    const exportToAnki = useRef(async () => {
+        let resolvePromise;
+        let promise = new Promise<ContextFromVideo>((resolve) => {
+            resolvePromise = resolve;
+        });
+        DeviceEventEmitter.emit('getContextFromVideo', resolvePromise);
+        let contextFromVideo = await promise;
+        console.log(contextFromVideo);
+    });
 
     return (
         <View style={[styles.popup, { display: popupAttrs.dictDisplay }]}>
@@ -58,7 +75,7 @@ export function TranslatePopup() {
                 <Text>{popupAttrs.sentenceTranslate}</Text>
             </ScrollView>
             <View style={styles.popupButtons}>
-                <Button title="export" />
+                <Button title="export" onPress={exportToAnki.current} />
             </View>
         </View>
     );

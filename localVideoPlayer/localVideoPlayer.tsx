@@ -23,6 +23,7 @@ const styles = StyleSheet.create({
     container: {
         position: 'absolute',
         top: 10,
-        paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0
+        paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+        width: '100%'
     }
 });

@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { TextInput, StyleSheet, DeviceEventEmitter } from 'react-native';
-import { SubtitleTextChangeEvent } from '../video/localVideo';
 
-export interface SubtitleSelectionChangeEvent {
+export interface SubtitleSelectionChangeData {
     text: string;
     sentence: string;
 }
@@ -13,8 +12,8 @@ export function Subtitle() {
     const [subtitleText, setSubtitleText] = useState<string>(PLEASE_ADD_SUBTITLE);
 
     useEffect(() => {
-        DeviceEventEmitter.addListener('onSubtitleTextChange', async (event: SubtitleTextChangeEvent) => {
-            setSubtitleText(event.subtitleText);
+        DeviceEventEmitter.addListener('onSubtitleTextChange', async (newSubtitleText) => {
+            setSubtitleText(newSubtitleText);
         });
 
         return () => {
@@ -36,7 +35,7 @@ export function Subtitle() {
         if (!isEnWordGroup(text)) {
             return;
         }
-        let subtitleSelectionChangeEvent: SubtitleSelectionChangeEvent = {
+        let subtitleSelectionChangeEvent: SubtitleSelectionChangeData = {
             text: text,
             sentence: sentence
         };

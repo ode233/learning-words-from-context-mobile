@@ -1,6 +1,6 @@
-import { Video } from 'expo-av';
+import { Video, Audio } from 'expo-av';
 
-interface ContextFromVideo {
+export interface ContextFromVideo {
     voiceDataUrl: string;
     imgDataUrl: string;
 }
@@ -12,14 +12,14 @@ export class LocalVideoClass {
         this.video = video;
     }
 
-    public seek(time: number): void {
-        this.video.setPositionAsync(time * 1000);
+    public async seek(time: number) {
+        await this.video.setPositionAsync(time * 1000);
     }
-    public play(): void {
-        this.video.playAsync;
+    public async play() {
+        await this.video.playAsync();
     }
-    public pause(): void {
-        this.video.pauseAsync();
+    public async pause() {
+        await this.video.pauseAsync();
     }
     public async getCurrentTime(): Promise<number | null> {
         let status = await this.video!.getStatusAsync();
@@ -34,12 +34,12 @@ export class LocalVideoClass {
     }
 
     // all time unit is second
-    public seekAndPlay(time: number | null) {
+    public async seekAndPlay(time: number | null) {
         if (!time) {
             return;
         }
-        this.seek(time);
-        this.play();
+        await this.seek(time);
+        await this.play();
     }
 
     public async getContextFromVideo(begin: number, end: number): Promise<ContextFromVideo> {
@@ -47,10 +47,8 @@ export class LocalVideoClass {
             voiceDataUrl: '',
             imgDataUrl: ''
         };
-        this.pause();
         contextFromVideo.imgDataUrl = this.captureVideo(begin);
         contextFromVideo.voiceDataUrl = await this.captureAudio(begin, end);
-        this.pause();
         return contextFromVideo;
     }
 
@@ -62,6 +60,24 @@ export class LocalVideoClass {
 
     private async captureAudio(begin: number, end: number): Promise<string> {
         // TODO: capture audio
-        return '';
+        const timeExtend = 200;
+        const duration = (end - begin) * 1000 + timeExtend;
+        await this.seek(begin);
+        await this.pause();
+        await Audio.requestPermissionsAsync();
+        await Audio.setAudioModeAsync({});
+        const { recording } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+        this.play();
+        return new Promise((resolve) => {
+            setTimeout(async () => {
+                await this.pause();
+                await recording.stopAndUnloadAsync();
+                const uri = recording.getURI();
+                if (uri === null) {
+                    throw new Error('uri is null');
+                }
+                resolve(uri);
+            }, duration);
+        });
     }
 }

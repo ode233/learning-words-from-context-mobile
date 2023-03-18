@@ -1,4 +1,4 @@
-import { AVPlaybackStatus, AVPlaybackStatusSuccess, ResizeMode, Video } from 'expo-av';
+import { AVPlaybackStatus, AVPlaybackStatusSuccess, ResizeMode, Video, Audio } from 'expo-av';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button, View, StyleSheet, Text, DeviceEventEmitter } from 'react-native';
 import { LocalVideoClass } from './localVideoClass';
@@ -6,26 +6,31 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import { SubtitleClass } from '../subtitle/subtitleClass';
 
-export interface SubtitleTextChangeEvent {
-    subtitleText: string;
-}
-
 export function LocalVideo() {
-    const video = useRef<Video>(null);
+    const video = useRef({} as Video);
     const [videoName, setVideoName] = useState('wait for play');
     const [status, setStatus] = useState({} as AVPlaybackStatus);
-
     const localVideoClass = useRef<LocalVideoClass>();
-    const subtitleClass = useRef<SubtitleClass>();
+    const subtitleClass = useRef<SubtitleClass>({} as SubtitleClass);
 
     useEffect(() => {
         localVideoClass.current = new LocalVideoClass(video.current!);
+        DeviceEventEmitter.addListener('getContextFromVideo', async (resolvePromise) => {
+            let nowSubtitleNode = subtitleClass.current.getNowSubtitleNode();
+            if (!nowSubtitleNode) {
+                return;
+            }
+            resolvePromise(localVideoClass.current!.getContextFromVideo(nowSubtitleNode?.begin, nowSubtitleNode?.end));
+        });
+        return () => {
+            DeviceEventEmitter.removeAllListeners('getContextFromVideo');
+        };
     }, []);
 
     const selectMedia = useRef(() => {
-        DocumentPicker.getDocumentAsync({ type: 'audio/mpeg' }).then((result) => {
+        DocumentPicker.getDocumentAsync({ type: 'audio/*' }).then(async (result) => {
             if (result.type === 'success') {
-                video.current!.loadAsync({
+                await video.current.loadAsync({
                     uri: result.uri
                 });
                 setVideoName(result.name);
@@ -48,14 +53,27 @@ export function LocalVideo() {
                     subtitleClass.current.updateSubtitle(time);
                     let newSubtitleText = subtitleClass.current.nowSubtitleText;
                     if (newSubtitleText !== subtitleText) {
-                        let subtitleTextChangeEvent: SubtitleTextChangeEvent = {
-                            subtitleText: newSubtitleText
-                        };
-                        DeviceEventEmitter.emit('onSubtitleTextChange', subtitleTextChangeEvent);
+                        DeviceEventEmitter.emit('onSubtitleTextChange', newSubtitleText);
                     }
                 });
             }
         });
+    });
+
+    const playNext = useRef(() => {
+        if (!localVideoClass.current || !subtitleClass.current) {
+            return;
+        }
+        const time = subtitleClass.current.getNextSubtitleTime();
+        localVideoClass.current.seekAndPlay(time);
+    });
+
+    const playPrev = useRef(() => {
+        if (!localVideoClass.current || !subtitleClass.current) {
+            return;
+        }
+        const time = subtitleClass.current.getPrevSubtitleTime();
+        localVideoClass.current.seekAndPlay(time);
     });
 
     return (
@@ -70,12 +88,16 @@ export function LocalVideo() {
                 useNativeControls
                 resizeMode={ResizeMode.CONTAIN}
                 isLooping
-                onPlaybackStatusUpdate={(status) => setStatus(() => status)}
+                onPlaybackStatusUpdate={(status) => {
+                    // TODO: frequncy render
+                    setStatus(() => status);
+                }}
+                status={{ androidImplementation: 'MediaPlayer' }}
             />
             <View>
                 <View style={styles.videoButtons}>
                     <View style={styles.videoButton}>
-                        <Button title="backward" />
+                        <Button title="backward" onPress={playPrev.current} />
                     </View>
                     <View style={styles.videoButton}>
                         <Button
@@ -88,7 +110,7 @@ export function LocalVideo() {
                         />
                     </View>
                     <View style={styles.videoButton}>
-                        <Button title="forward" />
+                        <Button title="forward" onPress={playNext.current} />
                     </View>
                 </View>
                 <View style={styles.videoButtons}>
