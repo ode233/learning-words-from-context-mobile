@@ -48,7 +48,6 @@ export function LocalVideo() {
                         return;
                     }
                     let time = status.positionMillis / 1000;
-                    console.log('setOntimeupdate', time);
                     let subtitleText = subtitleClass.current.nowSubtitleText;
                     subtitleClass.current.updateSubtitle(time);
                     let newSubtitleText = subtitleClass.current.nowSubtitleText;
@@ -87,7 +86,6 @@ export function LocalVideo() {
                 }}
                 useNativeControls
                 resizeMode={ResizeMode.CONTAIN}
-                isLooping
                 onPlaybackStatusUpdate={(status) => {
                     // TODO: frequncy render
                     setStatus(() => status);

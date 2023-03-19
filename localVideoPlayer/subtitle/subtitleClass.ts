@@ -55,7 +55,6 @@ export class SubtitleClass {
     public constructor(text: string) {
         let nodes = parseSync(text);
         let subtitleNodeList = generateSubtitleNodeList(nodes);
-        console.log('subtitle node:\n' + subtitleNodeList);
         this.subtitleNodeList = subtitleNodeList;
         this.subtitleBeginTime = subtitleNodeList[0].begin;
         this.subtitleEndTime = subtitleNodeList[subtitleNodeList.length - 1].end;

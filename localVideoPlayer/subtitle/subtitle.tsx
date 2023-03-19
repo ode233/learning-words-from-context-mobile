@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { TextInput, StyleSheet, DeviceEventEmitter } from 'react-native';
 
 export interface SubtitleSelectionChangeData {
@@ -22,6 +22,8 @@ export function Subtitle() {
     }, []);
 
     const onSubtitleSelectionChange = async (event: { nativeEvent: { selection: { start: number; end: number } } }) => {
+        console.log(event.nativeEvent);
+
         let sentence = subtitleText;
         if (!sentence) {
             return;
