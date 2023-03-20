@@ -9,6 +9,8 @@
         "web": "expo start --web"
     },
     "dependencies": {
+        "@emotion/native": "^11.10.6",
+        "@emotion/react": "^11.10.6",
         "events": "^3.3.0",
         "expo": "^48.0.7",
         "expo-av": "~13.2.1",

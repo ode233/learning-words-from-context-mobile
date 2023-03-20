@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { TextInput, StyleSheet, DeviceEventEmitter } from 'react-native';
+import {
+    TextInput,
+    StyleSheet,
+    DeviceEventEmitter,
+    NativeSyntheticEvent,
+    TextInputSelectionChangeEventData
+} from 'react-native';
 
 export interface SubtitleSelectionChangeData {
     text: string;
@@ -7,6 +13,8 @@ export interface SubtitleSelectionChangeData {
 }
 
 const PLEASE_ADD_SUBTITLE = 'please add subtitle';
+// const PLEASE_ADD_SUBTITLE =
+//     'please add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitle';
 
 export function Subtitle() {
     const [subtitleText, setSubtitleText] = useState<string>(PLEASE_ADD_SUBTITLE);
@@ -21,9 +29,7 @@ export function Subtitle() {
         };
     }, []);
 
-    const onSubtitleSelectionChange = async (event: { nativeEvent: { selection: { start: number; end: number } } }) => {
-        console.log(event.nativeEvent);
-
+    const onSubtitleSelectionChange = async (event: NativeSyntheticEvent<TextInputSelectionChangeEventData>) => {
         let sentence = subtitleText;
         if (!sentence) {
             return;
