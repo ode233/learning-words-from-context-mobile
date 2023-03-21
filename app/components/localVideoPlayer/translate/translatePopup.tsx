@@ -1,81 +1,61 @@
-import React, {
-    createContext,
-    Dispatch,
-    memo,
-    SetStateAction,
-    useContext,
-    useEffect,
-    useMemo,
-    useRef,
-    useState
-} from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-    ScrollView,
     View,
-    Text,
     Button,
     StyleSheet,
     DeviceEventEmitter,
-    StyleProp,
-    ViewStyle,
     Modal,
-    Dimensions,
     TouchableOpacity,
-    TouchableWithoutFeedback,
-    TextInput
+    TouchableWithoutFeedback
 } from 'react-native';
-import { translator } from '../../userConfig/userConfig';
+import { translator } from '../../../userConfig/userConfig';
 import { SubtitleSelectionChangeData } from '../subtitle/subtitle';
 import { ContextFromVideo } from '../video/localVideoClass';
 import { FontAwesome } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
-import styled, { css } from '@emotion/native';
+import styled from '@emotion/native';
+import { openAnkiExportPopup, selectDictAttr } from './translatePopupSlice';
+import { useAppDispatch, useAppSelector } from '../../../redux/hook';
 
 const YOUDAO_VOICE_URL = 'https://dict.youdao.com/dictvoice?type=0&audio=';
 const DICT_POPUP_WIDTH = 300;
 const DICT_POPUP_HEIGHT = 300;
 
 export function TranslatePopup() {
-    const [ankiExportVisible, setAnkiExportVisible] = useState(false);
-    const dictAttr = useMemo(() => new DictAttr(), []);
-
     return (
         <View>
-            <DictPopup dictAttr={dictAttr} setAnkiExportVisible={setAnkiExportVisible}></DictPopup>
-            {ankiExportVisible && (
-                <AnkiExportPopup dictAttr={dictAttr} setAnkiExportVisible={setAnkiExportVisible}></AnkiExportPopup>
-            )}
+            <DictPopup></DictPopup>
+            <AnkiExportPopup></AnkiExportPopup>
         </View>
     );
 }
 
-class DictAttr {
-    public text = '';
-    public textVoiceUrl = '';
-    public textTranslate = '';
-    public sentence = '';
-    public sentenceVoiceUrl = '';
-    public sentenceTranslate = '';
-    public contentVoiceDataUrl = '';
-    public contentImgDataUrl = '';
+export interface DictAttr {
+    text: string;
+    textVoiceUrl: string;
+    textTranslate: string;
+    sentence: string;
+    sentenceVoiceUrl: string;
+    sentenceTranslate: string;
+    contentVoiceDataUrl: string;
+    contentImgDataUrl: string;
 }
 
-interface DictPopupProps {
-    dictAttr: DictAttr;
-    setAnkiExportVisible: Dispatch<SetStateAction<boolean>>;
-}
-
-const DictPopup = memo(function DictPopup({ dictAttr, setAnkiExportVisible }: DictPopupProps) {
+const DictPopup = function DictPopup() {
     const [dictPopupVisible, setDictPopupVisible] = useState(false);
+    const [dictAttr, setDictAttr] = useState({} as DictAttr);
+    const dispatch = useAppDispatch();
 
     useEffect(() => {
         DeviceEventEmitter.addListener('onSubtitleSelectionChange', async (data: SubtitleSelectionChangeData) => {
-            dictAttr.text = data.text;
-            dictAttr.textVoiceUrl = YOUDAO_VOICE_URL + data.text;
-            dictAttr.textTranslate = await translator.translate(data.text);
-            dictAttr.sentence = data.sentence;
-            dictAttr.sentenceVoiceUrl = YOUDAO_VOICE_URL + data.sentence;
-            dictAttr.sentenceTranslate = await translator.translate(data.sentence);
+            let newDictAttr = {} as DictAttr;
+            newDictAttr.text = data.text;
+            newDictAttr.textVoiceUrl = YOUDAO_VOICE_URL + data.text;
+            newDictAttr.textTranslate = await translator.translate(data.text);
+            newDictAttr.sentence = data.sentence;
+            newDictAttr.sentenceVoiceUrl = YOUDAO_VOICE_URL + data.sentence;
+            newDictAttr.sentenceTranslate = await translator.translate(data.sentence);
+            setDictAttr(newDictAttr);
             setDictPopupVisible(true);
         });
 
@@ -99,8 +79,8 @@ const DictPopup = memo(function DictPopup({ dictAttr, setAnkiExportVisible }: Di
         // }
         // translateAttrRef.current.contentVoiceDataUrl = contextFromVideo.voiceDataUrl;
         dictAttr.contentVoiceDataUrl = dictAttr.sentenceVoiceUrl;
+        dispatch(openAnkiExportPopup(dictAttr));
         setDictPopupVisible(false);
-        setAnkiExportVisible(true);
     };
 
     return (
@@ -138,7 +118,7 @@ const DictPopup = memo(function DictPopup({ dictAttr, setAnkiExportVisible }: Di
             </Modal>
         </View>
     );
-});
+};
 
 const DictEntryContainer = styled.View({
     margin: 10
@@ -188,41 +168,42 @@ function DictPopupEntry({ value, voiceUrl }: DictPopupEntryProps) {
     );
 }
 
-class AnkiExportAttr {
-    public text = '';
-    public textVoiceUrl = '';
-    public textTranslate = '';
-    public sentence = '';
-    public sentenceVoiceUrl = '';
-    public sentenceTranslate = '';
-    public contentVoiceDataUrl = '';
-    public contentImgDataUrl = '';
-    public remark = '';
-    public pageIconUrl = '';
-    public pageTitle = '';
-    public pageUrl = '';
+export interface AnkiExportAttr {
+    text: string;
+    textVoiceUrl: string;
+    textTranslate: string;
+    sentence: string;
+    sentenceVoiceUrl: string;
+    sentenceTranslate: string;
+    contentVoiceDataUrl: string;
+    contentImgDataUrl: string;
+    remark: string;
+    pageIconUrl: string;
+    pageTitle: string;
+    pageUrl: string;
 }
 
-interface AnkiExportPopupProps {
-    dictAttr: DictAttr;
-    setAnkiExportVisible: Dispatch<SetStateAction<boolean>>;
-}
+function AnkiExportPopup() {
+    const [ankiExportPopupVisible, setAnkiExportPopupVisible] = useState(false);
+    const dictAttr = useAppSelector(selectDictAttr);
 
-function AnkiExportPopup({ dictAttr, setAnkiExportVisible }: AnkiExportPopupProps) {
     const [ankiExportAttr, setAnkiExportAttr] = useState({} as AnkiExportAttr);
 
     useEffect(() => {
+        if (!dictAttr) {
+            return;
+        }
+        setAnkiExportPopupVisible(true);
         setAnkiExportAttr(createAnkiExportAttr(dictAttr));
-    }, []);
+    }, [dictAttr]);
 
     return (
         <Modal
             animationType="slide"
             transparent={true}
+            visible={ankiExportPopupVisible}
             onRequestClose={() => {
-                setAnkiExportVisible((visible) => {
-                    return !visible;
-                });
+                setAnkiExportPopupVisible(false);
             }}
         >
             <View style={styles.ankiExportPopup}>
@@ -346,9 +327,7 @@ function AnkiExportPopupEntry({ title, value, onValueChange, voiceUrl }: AnkiExp
 }
 
 function createAnkiExportAttr(dictAttr: DictAttr) {
-    console.log(dictAttr);
-
-    let ankiExportAttr = new AnkiExportAttr();
+    let ankiExportAttr = {} as AnkiExportAttr;
     ankiExportAttr.text = dictAttr.text;
     ankiExportAttr.textVoiceUrl = dictAttr.textVoiceUrl;
     ankiExportAttr.textTranslate = dictAttr.textTranslate;

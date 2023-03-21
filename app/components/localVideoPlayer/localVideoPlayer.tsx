@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { View, StyleSheet, Button, Text, Platform, StatusBar } from 'react-native';
-import { init } from '../userConfig/userConfig';
+import { View, StyleSheet } from 'react-native';
+import { init } from '../../userConfig/userConfig';
 import { Subtitle } from './subtitle/subtitle';
 import { TranslatePopup } from './translate/translatePopup';
 import { LocalVideo } from './video/localVideo';
