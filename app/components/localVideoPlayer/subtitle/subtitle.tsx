@@ -6,28 +6,19 @@ import {
     NativeSyntheticEvent,
     TextInputSelectionChangeEventData
 } from 'react-native';
+import { useAppDispatch, useAppSelector } from '../../../redux/hook';
+import { openDictPopup } from '../translate/translatePopupSlice';
+import { stopVideo } from '../video/localVideoSlice';
+import { selectSubtitleText } from './subtitleSlice';
 
-export interface SubtitleSelectionChangeData {
+export interface SubtitleSelectionData {
     text: string;
     sentence: string;
 }
 
-const PLEASE_ADD_SUBTITLE = 'please add subtitle';
-// const PLEASE_ADD_SUBTITLE =
-//     'please add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitleplease add subtitle';
-
 export function Subtitle() {
-    const [subtitleText, setSubtitleText] = useState<string>(PLEASE_ADD_SUBTITLE);
-
-    useEffect(() => {
-        DeviceEventEmitter.addListener('onSubtitleTextChange', async (newSubtitleText) => {
-            setSubtitleText(newSubtitleText);
-        });
-
-        return () => {
-            DeviceEventEmitter.removeAllListeners('onSubtitleTextChange');
-        };
-    }, []);
+    const subtitleText = useAppSelector(selectSubtitleText);
+    const dispatch = useAppDispatch();
 
     const onSubtitleSelectionChange = async (event: NativeSyntheticEvent<TextInputSelectionChangeEventData>) => {
         let sentence = subtitleText;
@@ -43,11 +34,12 @@ export function Subtitle() {
         if (!isEnWordGroup(text)) {
             return;
         }
-        let subtitleSelectionChangeEvent: SubtitleSelectionChangeData = {
+        let SubtitleSelectionData: SubtitleSelectionData = {
             text: text,
             sentence: sentence
         };
-        DeviceEventEmitter.emit('onSubtitleSelectionChange', subtitleSelectionChangeEvent);
+        dispatch(stopVideo());
+        dispatch(openDictPopup(SubtitleSelectionData));
     };
 
     return (

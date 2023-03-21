@@ -5,32 +5,51 @@ import { LocalVideoClass } from './localVideoClass';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import { SubtitleClass } from '../subtitle/subtitleClass';
+import { useAppDispatch, useAppSelector } from '../../../redux/hook';
+import { updateSubtitleText } from '../subtitle/subtitleSlice';
+import { selectIsVideoPlay } from './localVideoSlice';
 
 export function LocalVideo() {
-    const video = useRef({} as Video);
+    const videoRef = useRef<Video>(null);
     const [videoName, setVideoName] = useState('wait for play');
-    const [status, setStatus] = useState({} as AVPlaybackStatus);
-    const localVideoClass = useRef<LocalVideoClass>();
-    const subtitleClass = useRef<SubtitleClass>({} as SubtitleClass);
+    const [status, setStatus] = useState<AVPlaybackStatus>();
+    const localVideoClassRef = useRef<LocalVideoClass>();
+    const subtitleClassRef = useRef<SubtitleClass>();
+
+    const dispatch = useAppDispatch();
+    const isVideoPlay = useAppSelector(selectIsVideoPlay);
 
     useEffect(() => {
-        localVideoClass.current = new LocalVideoClass(video.current!);
+        localVideoClassRef.current = new LocalVideoClass(videoRef.current!);
         DeviceEventEmitter.addListener('getContextFromVideo', async (resolvePromise) => {
-            let nowSubtitleNode = subtitleClass.current.getNowSubtitleNode();
+            let nowSubtitleNode = subtitleClassRef.current?.getNowSubtitleNode();
             if (!nowSubtitleNode) {
                 return;
             }
-            resolvePromise(localVideoClass.current!.getContextFromVideo(nowSubtitleNode?.begin, nowSubtitleNode?.end));
+            resolvePromise(
+                localVideoClassRef.current!.getContextFromVideo(nowSubtitleNode?.begin, nowSubtitleNode?.end)
+            );
         });
         return () => {
             DeviceEventEmitter.removeAllListeners('getContextFromVideo');
         };
     }, []);
 
-    const selectMedia = useRef(() => {
+    useEffect(() => {
+        if (isVideoPlay === undefined) {
+            return;
+        }
+        if (isVideoPlay) {
+            localVideoClassRef.current?.play();
+        } else {
+            localVideoClassRef.current?.pause();
+        }
+    }, [isVideoPlay]);
+
+    const selectMediaRef = useRef(() => {
         DocumentPicker.getDocumentAsync({ type: 'audio/*' }).then(async (result) => {
             if (result.type === 'success') {
-                await video.current.loadAsync({
+                await videoRef.current!.loadAsync({
                     uri: result.uri
                 });
                 setVideoName(result.name);
@@ -38,48 +57,52 @@ export function LocalVideo() {
         });
     });
 
-    const selectSubtitle = useRef(() => {
+    const selectSubtitleRef = useRef(() => {
+        if (!localVideoClassRef.current) {
+            alert('please select media first');
+            return;
+        }
         DocumentPicker.getDocumentAsync({ type: 'application/x-subrip' }).then(async (result) => {
             if (result.type === 'success') {
                 let text = await FileSystem.readAsStringAsync(result.uri);
-                subtitleClass.current = new SubtitleClass(text);
-                localVideoClass.current!.setOntimeupdate((status: AVPlaybackStatus) => {
-                    if (!status.isLoaded || !subtitleClass.current) {
+                subtitleClassRef.current = new SubtitleClass(text);
+                localVideoClassRef.current!.setOntimeupdate((status: AVPlaybackStatus) => {
+                    if (!status.isLoaded || !subtitleClassRef.current) {
                         return;
                     }
                     let time = status.positionMillis / 1000;
-                    let subtitleText = subtitleClass.current.nowSubtitleText;
-                    subtitleClass.current.updateSubtitle(time);
-                    let newSubtitleText = subtitleClass.current.nowSubtitleText;
+                    let subtitleText = subtitleClassRef.current.nowSubtitleText;
+                    subtitleClassRef.current.updateSubtitle(time);
+                    let newSubtitleText = subtitleClassRef.current.nowSubtitleText;
                     if (newSubtitleText !== subtitleText) {
-                        DeviceEventEmitter.emit('onSubtitleTextChange', newSubtitleText);
+                        dispatch(updateSubtitleText(newSubtitleText));
                     }
                 });
             }
         });
     });
 
-    const playNext = useRef(() => {
-        if (!localVideoClass.current || !subtitleClass.current) {
+    const playNextRef = useRef(() => {
+        if (!localVideoClassRef.current || !subtitleClassRef.current) {
             return;
         }
-        const time = subtitleClass.current.getNextSubtitleTime();
-        localVideoClass.current.seekAndPlay(time);
+        const time = subtitleClassRef.current.getNextSubtitleTime();
+        localVideoClassRef.current.seekAndPlay(time);
     });
 
-    const playPrev = useRef(() => {
-        if (!localVideoClass.current || !subtitleClass.current) {
+    const playPrevRef = useRef(() => {
+        if (!localVideoClassRef.current || !subtitleClassRef.current) {
             return;
         }
-        const time = subtitleClass.current.getPrevSubtitleTime();
-        localVideoClass.current.seekAndPlay(time);
+        const time = subtitleClassRef.current.getPrevSubtitleTime();
+        localVideoClassRef.current.seekAndPlay(time);
     });
 
     return (
         <View>
             <Text style={styles.videoName}>{videoName}</Text>
             <Video
-                ref={video}
+                ref={videoRef}
                 style={styles.video}
                 source={{
                     uri: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'
@@ -95,28 +118,28 @@ export function LocalVideo() {
             <View>
                 <View style={styles.videoButtons}>
                     <View style={styles.videoButton}>
-                        <Button title="backward" onPress={playPrev.current} />
+                        <Button title="backward" onPress={playPrevRef.current} />
                     </View>
                     <View style={styles.videoButton}>
                         <Button
-                            title={(status as AVPlaybackStatusSuccess).isPlaying ? 'Pause' : 'Play'}
+                            title={(status as AVPlaybackStatusSuccess)?.isPlaying ? 'Pause' : 'Play'}
                             onPress={() =>
-                                (status as AVPlaybackStatusSuccess).isPlaying
-                                    ? video.current!.pauseAsync()
-                                    : video.current!.playAsync()
+                                (status as AVPlaybackStatusSuccess)?.isPlaying
+                                    ? videoRef.current!.pauseAsync()
+                                    : videoRef.current!.playAsync()
                             }
                         />
                     </View>
                     <View style={styles.videoButton}>
-                        <Button title="forward" onPress={playNext.current} />
+                        <Button title="forward" onPress={playNextRef.current} />
                     </View>
                 </View>
                 <View style={styles.videoButtons}>
                     <View style={styles.videoButton}>
-                        <Button title="media" onPress={selectMedia.current} />
+                        <Button title="media" onPress={selectMediaRef.current} />
                     </View>
                     <View style={styles.videoButton}>
-                        <Button title="subtitle" onPress={selectSubtitle.current} />
+                        <Button title="subtitle" onPress={selectSubtitleRef.current} />
                     </View>
                 </View>
             </View>

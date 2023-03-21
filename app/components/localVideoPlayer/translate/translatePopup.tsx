@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
     View,
     Button,
@@ -9,13 +9,14 @@ import {
     TouchableWithoutFeedback
 } from 'react-native';
 import { translator } from '../../../userConfig/userConfig';
-import { SubtitleSelectionChangeData } from '../subtitle/subtitle';
+import { SubtitleSelectionData } from '../subtitle/subtitle';
 import { ContextFromVideo } from '../video/localVideoClass';
 import { FontAwesome } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
 import styled from '@emotion/native';
-import { openAnkiExportPopup, selectDictAttr } from './translatePopupSlice';
+import { openAnkiExportPopup, selectDictAttr, selectSubtitleSelectionData } from './translatePopupSlice';
 import { useAppDispatch, useAppSelector } from '../../../redux/hook';
+import { playVideo } from '../video/localVideoSlice';
 
 const YOUDAO_VOICE_URL = 'https://dict.youdao.com/dictvoice?type=0&audio=';
 const DICT_POPUP_WIDTH = 300;
@@ -43,27 +44,20 @@ export interface DictAttr {
 
 const DictPopup = function DictPopup() {
     const [dictPopupVisible, setDictPopupVisible] = useState(false);
-    const [dictAttr, setDictAttr] = useState({} as DictAttr);
+    const subtitleSelectionData = useAppSelector(selectSubtitleSelectionData);
     const dispatch = useAppDispatch();
 
+    const dictAttrRef = useRef({} as DictAttr);
+
     useEffect(() => {
-        DeviceEventEmitter.addListener('onSubtitleSelectionChange', async (data: SubtitleSelectionChangeData) => {
-            let newDictAttr = {} as DictAttr;
-            newDictAttr.text = data.text;
-            newDictAttr.textVoiceUrl = YOUDAO_VOICE_URL + data.text;
-            newDictAttr.textTranslate = await translator.translate(data.text);
-            newDictAttr.sentence = data.sentence;
-            newDictAttr.sentenceVoiceUrl = YOUDAO_VOICE_URL + data.sentence;
-            newDictAttr.sentenceTranslate = await translator.translate(data.sentence);
-            setDictAttr(newDictAttr);
+        console.log('DictPopup');
+        if (!subtitleSelectionData) {
+            return;
+        }
+        setDictAttrAsync(dictAttrRef.current, subtitleSelectionData).then(() => {
             setDictPopupVisible(true);
         });
-
-        return () => {
-            DeviceEventEmitter.removeAllListeners('onSubtitleSelectionChange');
-            DeviceEventEmitter.removeAllListeners('onGetContextFromVideoFinish');
-        };
-    }, []);
+    }, [subtitleSelectionData]);
 
     const exportToAnki = async () => {
         let resolvePromise;
@@ -78,8 +72,8 @@ const DictPopup = function DictPopup() {
         //     return;
         // }
         // translateAttrRef.current.contentVoiceDataUrl = contextFromVideo.voiceDataUrl;
-        dictAttr.contentVoiceDataUrl = dictAttr.sentenceVoiceUrl;
-        dispatch(openAnkiExportPopup(dictAttr));
+        dictAttrRef.current.contentVoiceDataUrl = dictAttrRef.current.sentenceVoiceUrl;
+        dispatch(openAnkiExportPopup({ ...dictAttrRef.current }));
         setDictPopupVisible(false);
     };
 
@@ -97,18 +91,22 @@ const DictPopup = function DictPopup() {
                     style={styles.centeredView}
                     activeOpacity={1}
                     onPressOut={() => {
+                        dispatch(playVideo());
                         setDictPopupVisible(false);
                     }}
                 >
                     <TouchableWithoutFeedback>
                         <View style={styles.dictPopup}>
-                            <DictPopupEntry value={dictAttr.text} voiceUrl={dictAttr.textVoiceUrl}></DictPopupEntry>
-                            <DictPopupEntry value={dictAttr.textTranslate}></DictPopupEntry>
                             <DictPopupEntry
-                                value={dictAttr.sentence}
-                                voiceUrl={dictAttr.sentenceVoiceUrl}
+                                value={dictAttrRef.current.text}
+                                voiceUrl={dictAttrRef.current.textVoiceUrl}
                             ></DictPopupEntry>
-                            <DictPopupEntry value={dictAttr.sentenceTranslate}></DictPopupEntry>
+                            <DictPopupEntry value={dictAttrRef.current.textTranslate}></DictPopupEntry>
+                            <DictPopupEntry
+                                value={dictAttrRef.current.sentence}
+                                voiceUrl={dictAttrRef.current.sentenceVoiceUrl}
+                            ></DictPopupEntry>
+                            <DictPopupEntry value={dictAttrRef.current.sentenceTranslate}></DictPopupEntry>
                             <View style={styles.popupButtons}>
                                 <Button title="export" onPress={exportToAnki} />
                             </View>
@@ -119,6 +117,15 @@ const DictPopup = function DictPopup() {
         </View>
     );
 };
+
+async function setDictAttrAsync(dictAttr: DictAttr, subtitleSelectionData: SubtitleSelectionData) {
+    dictAttr.text = subtitleSelectionData.text;
+    dictAttr.textVoiceUrl = YOUDAO_VOICE_URL + dictAttr.text;
+    dictAttr.textTranslate = await translator.translate(dictAttr.text);
+    dictAttr.sentence = subtitleSelectionData.sentence;
+    dictAttr.sentenceVoiceUrl = YOUDAO_VOICE_URL + dictAttr.sentence;
+    dictAttr.sentenceTranslate = await translator.translate(dictAttr.sentence);
+}
 
 const DictEntryContainer = styled.View({
     margin: 10
@@ -188,11 +195,13 @@ function AnkiExportPopup() {
     const dictAttr = useAppSelector(selectDictAttr);
 
     const [ankiExportAttr, setAnkiExportAttr] = useState({} as AnkiExportAttr);
+    console.log('AnkiExportPopup1');
 
     useEffect(() => {
         if (!dictAttr) {
             return;
         }
+        console.log('AnkiExportPopup2');
         setAnkiExportPopupVisible(true);
         setAnkiExportAttr(createAnkiExportAttr(dictAttr));
     }, [dictAttr]);
