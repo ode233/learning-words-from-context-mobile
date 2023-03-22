@@ -1,9 +1,12 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '../../../redux/store';
+import { ContextFromVideo } from './localVideoClass';
 
 // Define a type for the slice state
 interface LocalVideoState {
-    isVidoPlay?: boolean;
+    isPlaying?: boolean;
+    contextFromVideo?: ContextFromVideo;
+    getContextFromVideoTrigger?: {};
 }
 
 // Define the initial state using that type
@@ -13,18 +16,25 @@ export const localVideoSlice = createSlice({
     name: 'localVideo',
     initialState,
     reducers: {
-        playVideo: (state) => {
-            state.isVidoPlay = true;
+        updateIsPlaying: (state, action: PayloadAction<boolean, string>) => {
+            state.isPlaying = action.payload;
         },
-        stopVideo: (state) => {
-            state.isVidoPlay = false;
+        getContextFromVideo: (state) => {
+            state.getContextFromVideoTrigger = {};
+        },
+        updateContextFromVideo: (state, action: PayloadAction<ContextFromVideo, string>) => {
+            state.contextFromVideo = action.payload;
         }
     }
 });
 
-export const { playVideo, stopVideo } = localVideoSlice.actions;
+export const { updateIsPlaying, getContextFromVideo, updateContextFromVideo } = localVideoSlice.actions;
 
-export const selectIsVideoPlay = (state: RootState) => state.localVideo.isVidoPlay;
+export const selectIsPlaying = (state: RootState) => state.localVideo.isPlaying;
+
+export const selectContextFromVideoTrigger = (state: RootState) => state.localVideo.getContextFromVideoTrigger;
+
+export const selectContextFromVideo = (state: RootState) => state.localVideo.contextFromVideo;
 
 const localVideoReducer = localVideoSlice.reducer;
 export default localVideoReducer;

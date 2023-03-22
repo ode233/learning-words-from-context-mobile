@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { useAppDispatch, useAppSelector } from '../../../redux/hook';
 import { openDictPopup } from '../translate/translatePopupSlice';
-import { stopVideo } from '../video/localVideoSlice';
+import { updateIsPlaying } from '../video/localVideoSlice';
 import { selectSubtitleText } from './subtitleSlice';
 
 export interface SubtitleSelectionData {
@@ -19,6 +19,7 @@ export interface SubtitleSelectionData {
 export function Subtitle() {
     const subtitleText = useAppSelector(selectSubtitleText);
     const dispatch = useAppDispatch();
+    const subtitleRef = useRef<TextInput>(null);
 
     const onSubtitleSelectionChange = async (event: NativeSyntheticEvent<TextInputSelectionChangeEventData>) => {
         let sentence = subtitleText;
@@ -30,6 +31,7 @@ export function Subtitle() {
         if (start >= end) {
             return;
         }
+        console.log('onSubtitleSelectionChange');
         let text = sentence.slice(start, end);
         if (!isEnWordGroup(text)) {
             return;
@@ -38,12 +40,17 @@ export function Subtitle() {
             text: text,
             sentence: sentence
         };
-        dispatch(stopVideo());
+        dispatch(updateIsPlaying(false));
         dispatch(openDictPopup(SubtitleSelectionData));
+
+        // cancel selection
+        subtitleRef.current?.setNativeProps({ selection: { start: 0, end: 0 } });
+        subtitleRef.current?.blur();
     };
 
     return (
         <TextInput
+            ref={subtitleRef}
             style={styles.subtitle}
             showSoftInputOnFocus={false}
             multiline={true}

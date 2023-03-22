@@ -1,50 +1,60 @@
 import { AVPlaybackStatus, AVPlaybackStatusSuccess, ResizeMode, Video, Audio } from 'expo-av';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button, View, StyleSheet, Text, DeviceEventEmitter } from 'react-native';
-import { LocalVideoClass } from './localVideoClass';
+import { ContextFromVideo, LocalVideoClass } from './localVideoClass';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import { SubtitleClass } from '../subtitle/subtitleClass';
 import { useAppDispatch, useAppSelector } from '../../../redux/hook';
 import { updateSubtitleText } from '../subtitle/subtitleSlice';
-import { selectIsVideoPlay } from './localVideoSlice';
+import {
+    selectContextFromVideoTrigger,
+    selectIsPlaying,
+    updateContextFromVideo,
+    updateIsPlaying
+} from './localVideoSlice';
 
 export function LocalVideo() {
     const videoRef = useRef<Video>(null);
     const [videoName, setVideoName] = useState('wait for play');
-    const [status, setStatus] = useState<AVPlaybackStatus>();
     const localVideoClassRef = useRef<LocalVideoClass>();
     const subtitleClassRef = useRef<SubtitleClass>();
 
     const dispatch = useAppDispatch();
-    const isVideoPlay = useAppSelector(selectIsVideoPlay);
+    // TODO: the re-render is not necessary, can only listen the change?
+    const getContextFromVideoTrigger = useAppSelector(selectContextFromVideoTrigger);
+    const isPlaying = useAppSelector(selectIsPlaying);
 
     useEffect(() => {
         localVideoClassRef.current = new LocalVideoClass(videoRef.current!);
-        DeviceEventEmitter.addListener('getContextFromVideo', async (resolvePromise) => {
-            let nowSubtitleNode = subtitleClassRef.current?.getNowSubtitleNode();
-            if (!nowSubtitleNode) {
-                return;
-            }
-            resolvePromise(
-                localVideoClassRef.current!.getContextFromVideo(nowSubtitleNode?.begin, nowSubtitleNode?.end)
-            );
-        });
-        return () => {
-            DeviceEventEmitter.removeAllListeners('getContextFromVideo');
-        };
     }, []);
 
     useEffect(() => {
-        if (isVideoPlay === undefined) {
+        if (isPlaying === undefined) {
             return;
         }
-        if (isVideoPlay) {
+        if (isPlaying) {
             localVideoClassRef.current?.play();
         } else {
             localVideoClassRef.current?.pause();
         }
-    }, [isVideoPlay]);
+    }, [isPlaying]);
+
+    useEffect(() => {
+        if (getContextFromVideoTrigger === undefined) {
+            return;
+        }
+        let nowSubtitleNode = subtitleClassRef.current?.getNowSubtitleNode();
+        if (!nowSubtitleNode) {
+            dispatch(updateContextFromVideo({} as ContextFromVideo));
+            return;
+        }
+        localVideoClassRef
+            .current!.getContextFromVideo(nowSubtitleNode?.begin, nowSubtitleNode?.end)
+            .then((contextFromVideo) => {
+                dispatch(updateContextFromVideo(contextFromVideo));
+            });
+    }, [getContextFromVideoTrigger]);
 
     const selectMediaRef = useRef(() => {
         DocumentPicker.getDocumentAsync({ type: 'audio/*' }).then(async (result) => {
@@ -104,14 +114,13 @@ export function LocalVideo() {
             <Video
                 ref={videoRef}
                 style={styles.video}
-                source={{
-                    uri: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'
-                }}
                 useNativeControls
                 resizeMode={ResizeMode.CONTAIN}
                 onPlaybackStatusUpdate={(status) => {
-                    // TODO: frequncy render
-                    setStatus(() => status);
+                    if (!status.isLoaded) {
+                        return;
+                    }
+                    dispatch(updateIsPlaying(status.isPlaying));
                 }}
                 status={{ androidImplementation: 'MediaPlayer' }}
             />
@@ -122,12 +131,8 @@ export function LocalVideo() {
                     </View>
                     <View style={styles.videoButton}>
                         <Button
-                            title={(status as AVPlaybackStatusSuccess)?.isPlaying ? 'Pause' : 'Play'}
-                            onPress={() =>
-                                (status as AVPlaybackStatusSuccess)?.isPlaying
-                                    ? videoRef.current!.pauseAsync()
-                                    : videoRef.current!.playAsync()
-                            }
+                            title={isPlaying ? 'Pause' : 'Play'}
+                            onPress={() => dispatch(updateIsPlaying(!isPlaying))}
                         />
                     </View>
                     <View style={styles.videoButton}>

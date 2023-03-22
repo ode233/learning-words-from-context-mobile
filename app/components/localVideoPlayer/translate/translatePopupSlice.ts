@@ -21,8 +21,6 @@ export const translatePopupSlice = createSlice({
             state.subtitleSelectionData = action.payload;
         },
         openAnkiExportPopup: (state, action: PayloadAction<DictAttr, string>) => {
-            console.log('openAnkiExportPopup', action.payload);
-
             state.dictAttr = action.payload;
         }
     }
