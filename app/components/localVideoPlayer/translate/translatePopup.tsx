@@ -8,7 +8,7 @@ import {
     TouchableOpacity,
     TouchableWithoutFeedback
 } from 'react-native';
-import { translator } from '../../../userConfig/userConfig';
+import { ankiDeck, translator } from '../../../userConfig/userConfig';
 import { SubtitleSelectionData } from '../subtitle/subtitle';
 import { ContextFromVideo } from '../video/localVideoClass';
 import { FontAwesome } from '@expo/vector-icons';
@@ -16,7 +16,13 @@ import { Audio } from 'expo-av';
 import styled from '@emotion/native';
 import { openAnkiExportPopup, selectDictAttr, selectSubtitleSelectionData } from './translatePopupSlice';
 import { useAppDispatch, useAppSelector } from '../../../redux/hook';
-import { getContextFromVideo, updateIsPlaying, selectContextFromVideo } from '../video/localVideoSlice';
+import {
+    getContextFromVideo,
+    updateIsPlaying,
+    selectContextFromVideo,
+    selectVideoName
+} from '../video/localVideoSlice';
+import { addNote } from '../../../api/ankiApi';
 
 const YOUDAO_VOICE_URL = 'https://dict.youdao.com/dictvoice?type=0&audio=';
 const DICT_POPUP_WIDTH = 300;
@@ -126,7 +132,7 @@ const DictPopup = function DictPopup() {
         dispatch(openAnkiExportPopup({ ...dictAttrRef.current }));
     }, [contextFromVideo]);
 
-    const exportToAnki = async () => {
+    const openAnkiPopup = async () => {
         isWaitingContextFromVideoRef.current = true;
         setDictPopupVisible(false);
         dispatch(getContextFromVideo());
@@ -163,7 +169,7 @@ const DictPopup = function DictPopup() {
                             ></DictPopupEntry>
                             <DictPopupEntry value={dictAttrRef.current.sentenceTranslate}></DictPopupEntry>
                             <View style={styles.popupButtons}>
-                                <Button title="export" onPress={exportToAnki} />
+                                <Button title="export" onPress={openAnkiPopup} />
                             </View>
                         </View>
                     </TouchableWithoutFeedback>
@@ -257,6 +263,8 @@ function AnkiExportPopup() {
     const [ankiExportPopupVisible, setAnkiExportPopupVisible] = useState(false);
     const dictAttr = useAppSelector(selectDictAttr);
 
+    const videoName = useAppSelector(selectVideoName);
+
     const [ankiExportAttr, setAnkiExportAttr] = useState({} as AnkiExportAttr);
 
     useEffect(() => {
@@ -264,8 +272,17 @@ function AnkiExportPopup() {
             return;
         }
         setAnkiExportPopupVisible(true);
-        setAnkiExportAttr(createAnkiExportAttr(dictAttr));
+        setAnkiExportAttr(createAnkiExportAttr(dictAttr, videoName));
     }, [dictAttr]);
+
+    function exportToAnki() {
+        if (!ankiDeck) {
+            alert('Please connect anki first');
+            return;
+        }
+        addNote(ankiDeck, ankiExportAttr);
+        setAnkiExportPopupVisible(false);
+    }
 
     return (
         <Modal
@@ -337,10 +354,10 @@ function AnkiExportPopup() {
                 ></AnkiExportPopupEntry>
                 <View style={styles.popupButtons}>
                     <View style={styles.popupButton}>
-                        <Button title="close" />
+                        <Button title="close" onPress={() => setAnkiExportPopupVisible(false)} />
                     </View>
                     <View style={styles.popupButton}>
-                        <Button title="confirm" />
+                        <Button title="confirm" onPress={exportToAnki} />
                     </View>
                 </View>
             </View>
@@ -348,7 +365,7 @@ function AnkiExportPopup() {
     );
 }
 
-function createAnkiExportAttr(dictAttr: DictAttr) {
+function createAnkiExportAttr(dictAttr: DictAttr, videoName: string) {
     let ankiExportAttr = {} as AnkiExportAttr;
     ankiExportAttr.text = dictAttr.text;
     ankiExportAttr.textVoiceUrl = dictAttr.textVoiceUrl;
@@ -358,6 +375,9 @@ function createAnkiExportAttr(dictAttr: DictAttr) {
     ankiExportAttr.sentenceTranslate = dictAttr.sentenceTranslate;
     ankiExportAttr.contentVoiceDataUrl = dictAttr.contentVoiceDataUrl;
     ankiExportAttr.contentImgDataUrl = dictAttr.contentImgDataUrl;
+    ankiExportAttr.pageIconUrl = '';
+    ankiExportAttr.pageTitle = videoName;
+    ankiExportAttr.pageUrl = '';
     return ankiExportAttr;
 }
 

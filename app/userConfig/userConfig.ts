@@ -1,6 +1,7 @@
 import { CaiyunTranslator, YoudaoFreeTranslator } from '../components/localVideoPlayer/translate/translator';
 
 import AnkiDroid from 'react-native-ankidroid';
+import { addNote, createAnkiDeck, modelFields, testNote } from '../api/ankiApi';
 
 class UserConfig {
     public caiyunToken = '';
@@ -34,6 +35,8 @@ function initUserConfig() {
     }
 }
 
+export let ankiDeck: AnkiDroid | null = null;
+
 async function initAnkiConfig() {
     let isApiAvailable = await AnkiDroid.isApiAvailable();
     console.log(isApiAvailable);
@@ -44,13 +47,13 @@ async function initAnkiConfig() {
     console.log(deckList);
     let modelList = await AnkiDroid.getModelList();
     console.log(modelList);
+    ankiDeck = createAnkiDeck();
+    console.log(ankiDeck);
 }
 
-let translator = new YoudaoFreeTranslator();
+export let translator = new YoudaoFreeTranslator();
 
-function init() {
+export function init() {
     initUserConfig();
     initAnkiConfig();
 }
-
-export { init, translator };

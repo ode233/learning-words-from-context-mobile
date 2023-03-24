@@ -10,13 +10,14 @@ import { updateSubtitleText } from '../subtitle/subtitleSlice';
 import {
     selectContextFromVideoTrigger,
     selectIsPlaying,
+    selectVideoName,
     updateContextFromVideo,
-    updateIsPlaying
+    updateIsPlaying,
+    updateVideoName
 } from './localVideoSlice';
 
 export function LocalVideo() {
     const videoRef = useRef<Video>(null);
-    const [videoName, setVideoName] = useState('wait for play');
     const localVideoClassRef = useRef<LocalVideoClass>();
     const subtitleClassRef = useRef<SubtitleClass>();
 
@@ -24,6 +25,7 @@ export function LocalVideo() {
     // TODO: the re-render is not necessary, can only listen the change?
     const getContextFromVideoTrigger = useAppSelector(selectContextFromVideoTrigger);
     const isPlaying = useAppSelector(selectIsPlaying);
+    const videoName = useAppSelector(selectVideoName);
 
     useEffect(() => {
         localVideoClassRef.current = new LocalVideoClass(videoRef.current!);
@@ -62,7 +64,7 @@ export function LocalVideo() {
                 await videoRef.current!.loadAsync({
                     uri: result.uri
                 });
-                setVideoName(result.name);
+                dispatch(updateVideoName(result.name));
             }
         });
     });
