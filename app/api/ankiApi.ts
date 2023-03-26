@@ -1,6 +1,7 @@
 import AnkiDroid from 'react-native-ankidroid';
 import { MEDIA_MIME_TYPE } from 'react-native-ankidroid/dist/types';
 import { AnkiExportAttr } from '../components/localVideoPlayer/translate/translatePopup';
+import * as FileSystem from 'expo-file-system';
 
 const ANKI_DECK_NAME = 'test233';
 const ANKI_MODEL_NAME = 'test233';
@@ -203,11 +204,8 @@ export const addNote = async (ankiDeck: AnkiDroid, ankiExportAttr: AnkiExportAtt
     console.log('addNote', ankiExportAttr);
 
     let timestamp = Date.now().toString();
-    let sentenceVoice = await uploadMediaFromUri(
-        ankiExportAttr.contentVoiceDataUrl,
-        `${timestamp}_sentenceVoice.mp3`,
-        'audio'
-    );
+    let sentenceVoiceCUri = await FileSystem.getContentUriAsync(ankiExportAttr.contentVoiceDataUrl);
+    let sentenceVoice = await uploadMediaFromUri(sentenceVoiceCUri, `${timestamp}_sentenceVoice.mp3`, 'audio');
     let text = ankiExportAttr.text;
     let textPhonetic = '';
     let textVoice = await uploadMediaFromUri(ankiExportAttr.textVoiceUrl, `${timestamp}_textVoice.mp3`, 'audio');
