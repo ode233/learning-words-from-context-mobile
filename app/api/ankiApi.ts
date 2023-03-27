@@ -1,5 +1,5 @@
-import AnkiDroid from 'react-native-ankidroid';
-import { MEDIA_MIME_TYPE } from 'react-native-ankidroid/dist/types';
+import AnkiDroid from 'react-native-ankidroid-forked-by-ode233';
+import { MEDIA_MIME_TYPE } from 'react-native-ankidroid-forked-by-ode233/dist/types';
 import { AnkiExportAttr } from '../components/localVideoPlayer/translate/translatePopup';
 import * as FileSystem from 'expo-file-system';
 
@@ -204,24 +204,26 @@ export const addNote = async (ankiDeck: AnkiDroid, ankiExportAttr: AnkiExportAtt
     console.log('addNote', ankiExportAttr);
 
     let timestamp = Date.now().toString();
-    let sentenceVoiceCUri = await FileSystem.getContentUriAsync(ankiExportAttr.contentVoiceDataUrl);
-    let sentenceVoice = await uploadMediaFromUri(sentenceVoiceCUri, `${timestamp}_sentenceVoice.mp3`, 'audio');
+
     let text = ankiExportAttr.text;
     let textPhonetic = '';
-    let textVoice = await uploadMediaFromUri(ankiExportAttr.textVoiceUrl, `${timestamp}_textVoice.mp3`, 'audio');
+    let textVoice = await uploadMediaFromUri(ankiExportAttr.textVoiceUrl, `textVoice`, 'audio');
     let textTranslate = ankiExportAttr.textTranslate;
+
     let sentence = ankiExportAttr.sentence;
+    let sentenceVoice = await uploadMediaFromUri(ankiExportAttr.contentVoiceDataUrl, `sentenceVoice`, 'audio');
     let sentenceTranslate = ankiExportAttr.sentenceTranslate;
+
     let remark = ankiExportAttr.remark;
-    let pageIcon = await uploadMediaFromUri(
-        'https://raw.githubusercontent.com/ode233/learning-words-from-context/main/src/assets/icons/icon.png',
-        `localVideoPlayer.ico`,
-        'image'
-    );
+
+    let pageIcon = ankiExportAttr.pageIconUrl;
     let pageTitle = ankiExportAttr.pageTitle;
     let pageUrl = ankiExportAttr.pageUrl;
-    let img = await uploadMediaFromUri(ankiExportAttr.contentImgDataUrl, `${timestamp}_img.jpeg`, 'image');
+
+    let img = await uploadMediaFromUri(ankiExportAttr.contentImgDataUrl, `img`, 'image');
+
     let sentenceCloze = ankiExportAttr.sentence.replaceAll(ankiExportAttr.text, `{{c1::${ankiExportAttr.text}}}`);
+
     const valueFields = [
         timestamp,
         text,
@@ -238,38 +240,40 @@ export const addNote = async (ankiDeck: AnkiDroid, ankiExportAttr: AnkiExportAtt
         img,
         sentenceCloze
     ];
+    console.log(valueFields);
+
     await ankiDeck.addNote(valueFields, modelFields);
 };
 
 async function uploadMediaFromUri(uri: string, preferredName: string, mimeType: MEDIA_MIME_TYPE) {
-    console.log(uri, preferredName, mimeType);
-    let res = await AnkiDroid.uploadMediaFromUri(uri, preferredName, mimeType);
-    console.log('uploadMediaFromUri', res);
+    if (!uri) {
+        return '';
+    }
+    let fileUri = uri;
+    if (uri.startsWith('http')) {
+        let res = await FileSystem.downloadAsync(uri, FileSystem.documentDirectory + preferredName);
+        if (res.status != 200) {
+            alert(`download meida error: ${uri}, ${res.status}`);
+            throw new Error(`download error: ${uri}, ${res.status}`);
+        }
+        fileUri = res.uri;
+    }
+
+    let cUri = await FileSystem.getContentUriAsync(fileUri);
+    let res = await AnkiDroid.uploadMediaFromUri(cUri, preferredName, mimeType);
+    FileSystem.deleteAsync(fileUri);
 
     let err = res[0];
     if (err != null) {
-        alert('upload media error: ' + err.message);
+        alert(`upload meida error: ${uri}`);
         throw err;
     }
-    let name = res[1];
-    if (!name) {
-        alert('upload media error: ' + name);
-        throw new Error('upload media error: ' + name);
+    let ankiValue = res[1];
+    if (!ankiValue) {
+        alert(`upload meida error: ${uri}`);
+        throw new Error(`upload meida error: ${uri}`);
     }
+    console.log(ankiValue);
 
-    return name;
-}
-
-function getPageIconName(pageIconUrl: string): string {
-    let pageIconName;
-    if (pageIconUrl.includes('chrome-extension://')) {
-        pageIconName = 'localVideoPlayer.ico';
-    } else {
-        pageIconName = pageIconUrl.replaceAll('/favicon.ico', '');
-        pageIconName = pageIconName.replaceAll('https://', '');
-        pageIconName = pageIconName.replaceAll('http://', '');
-        pageIconName = pageIconName.replaceAll('.', '-');
-        pageIconName = pageIconName + '.ico';
-    }
-    return pageIconName;
+    return ankiValue;
 }

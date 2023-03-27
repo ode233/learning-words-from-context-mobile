@@ -1,8 +1,7 @@
 import { CaiyunTranslator, YoudaoFreeTranslator } from '../components/localVideoPlayer/translate/translator';
 
-import AnkiDroid from 'react-native-ankidroid';
-import { addNote, createAnkiDeck, modelFields, testNote } from '../api/ankiApi';
-import { StorageAccessFramework } from 'expo-file-system';
+import AnkiDroid from 'react-native-ankidroid-forked-by-ode233';
+import { createAnkiDeck } from '../api/ankiApi';
 
 class UserConfig {
     public caiyunToken = '';

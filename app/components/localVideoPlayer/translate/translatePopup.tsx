@@ -1,16 +1,7 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import {
-    View,
-    Button,
-    StyleSheet,
-    DeviceEventEmitter,
-    Modal,
-    TouchableOpacity,
-    TouchableWithoutFeedback
-} from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Button, StyleSheet, Modal, TouchableOpacity, TouchableWithoutFeedback } from 'react-native';
 import { ankiDeck, translator } from '../../../userConfig/userConfig';
 import { SubtitleSelectionData } from '../subtitle/subtitle';
-import { ContextFromVideo } from '../video/localVideoClass';
 import { FontAwesome } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
 import styled from '@emotion/native';
@@ -272,7 +263,9 @@ function AnkiExportPopup() {
             return;
         }
         setAnkiExportPopupVisible(true);
-        setAnkiExportAttr(createAnkiExportAttr(dictAttr, videoName));
+        createAnkiExportAttr(dictAttr, videoName).then((ankiExportAttr) => {
+            setAnkiExportAttr(ankiExportAttr);
+        });
     }, [dictAttr]);
 
     function exportToAnki() {
@@ -365,7 +358,7 @@ function AnkiExportPopup() {
     );
 }
 
-function createAnkiExportAttr(dictAttr: DictAttr, videoName: string) {
+async function createAnkiExportAttr(dictAttr: DictAttr, videoName: string) {
     let ankiExportAttr = {} as AnkiExportAttr;
     ankiExportAttr.text = dictAttr.text;
     ankiExportAttr.textVoiceUrl = dictAttr.textVoiceUrl;
@@ -375,9 +368,11 @@ function createAnkiExportAttr(dictAttr: DictAttr, videoName: string) {
     ankiExportAttr.sentenceTranslate = dictAttr.sentenceTranslate;
     ankiExportAttr.contentVoiceDataUrl = dictAttr.contentVoiceDataUrl;
     ankiExportAttr.contentImgDataUrl = dictAttr.contentImgDataUrl;
-    ankiExportAttr.pageIconUrl = '';
+    ankiExportAttr.remark = '';
+    ankiExportAttr.pageIconUrl =
+        '<img src="https://raw.githubusercontent.com/ode233/learning-words-from-context-mobile/main/assets/icon.png"/>';
     ankiExportAttr.pageTitle = videoName;
-    ankiExportAttr.pageUrl = '';
+    ankiExportAttr.pageUrl = '#';
     return ankiExportAttr;
 }
 

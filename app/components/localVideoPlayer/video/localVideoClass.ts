@@ -59,7 +59,6 @@ export class LocalVideoClass {
     }
 
     private async captureAudio(begin: number, end: number): Promise<string> {
-        // TODO: capture audio
         const timeExtend = 200;
         const duration = (end - begin) * 1000 + timeExtend;
         await this.seek(begin);
