@@ -295,12 +295,12 @@ async function uploadMediaFromUri(uri: string, preferredName: string, mimeType: 
 
     let err = res[0];
     if (err != null) {
-        alert(`upload meida error: ${uri}`);
+        alert(`upload meida error, file uri:${uri}. please open anki and try again.`);
         throw err;
     }
     let ankiValue = res[1];
     if (!ankiValue) {
-        alert(`upload meida error: ${uri}`);
+        alert(`upload meida error, file uri:${uri}. please open anki and try again.`);
         throw new Error(`upload meida error: ${uri}`);
     }
     console.log(ankiValue);
