@@ -8,8 +8,6 @@ import { LocalVideo } from './video/localVideo';
 init();
 
 export default function LocalVideoPlayer() {
-    setTimeout(() => {}, 1000);
-
     return (
         <View style={styles.container}>
             <LocalVideo></LocalVideo>

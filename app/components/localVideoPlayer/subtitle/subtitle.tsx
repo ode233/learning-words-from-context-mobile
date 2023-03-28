@@ -21,6 +21,10 @@ export function Subtitle() {
     const dispatch = useAppDispatch();
     const subtitleRef = useRef<TextInput>(null);
 
+    useEffect(() => {
+        cancelSelection();
+    }, [subtitleText]);
+
     const onSubtitleSelectionChange = async (event: NativeSyntheticEvent<TextInputSelectionChangeEventData>) => {
         let sentence = subtitleText;
         if (!sentence) {
@@ -43,10 +47,15 @@ export function Subtitle() {
         dispatch(updateIsPlaying(false));
         dispatch(openDictPopup(SubtitleSelectionData));
 
-        // cancel selection
-        subtitleRef.current?.setNativeProps({ selection: { start: 0, end: 0 } });
-        subtitleRef.current?.blur();
+        cancelSelection();
     };
+
+    function cancelSelection() {
+        subtitleRef.current?.setNativeProps({ selection: { start: 0, end: 0 } });
+        setTimeout(() => {
+            subtitleRef.current?.blur();
+        }, 10);
+    }
 
     return (
         <TextInput
@@ -76,6 +85,7 @@ function isEnWordGroup(sentence: string): boolean {
 
 const styles = StyleSheet.create({
     subtitle: {
+        top: 20,
         margin: 10,
         fontSize: 20,
         textAlign: 'center',

@@ -1,7 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '../../../redux/store';
 import { SubtitleSelectionData } from '../subtitle/subtitle';
-import { ContextFromVideo } from '../video/localVideoClass';
 import { DictAttr } from './translatePopup';
 
 // Define a type for the slice state

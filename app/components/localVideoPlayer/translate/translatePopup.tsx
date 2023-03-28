@@ -1,6 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Button, StyleSheet, Modal, TouchableOpacity, TouchableWithoutFeedback } from 'react-native';
-import { ankiDeck, translator } from '../../../userConfig/userConfig';
+import {
+    View,
+    Button,
+    StyleSheet,
+    Modal,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
+    ActivityIndicator
+} from 'react-native';
+import { translator } from '../../../userConfig/userConfig';
 import { SubtitleSelectionData } from '../subtitle/subtitle';
 import { FontAwesome } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
@@ -25,6 +33,23 @@ export function TranslatePopup() {
             <DictPopup></DictPopup>
             <AnkiExportPopup></AnkiExportPopup>
         </View>
+    );
+}
+
+function Loading() {
+    return (
+        <Modal transparent={true} onRequestClose={() => {}}>
+            <View
+                style={{
+                    flex: 1,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    backgroundColor: 'rgba(0, 0, 0, 0.2)'
+                }}
+            >
+                <ActivityIndicator size="large" />
+            </View>
+        </Modal>
     );
 }
 
@@ -95,22 +120,21 @@ const DictPopup = function DictPopup() {
     const dispatch = useAppDispatch();
 
     const dictAttrRef = useRef({} as DictAttr);
-    const isWaitingContextFromVideoRef = useRef(false);
+
+    const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
-        if (isWaitingContextFromVideoRef.current) {
-            return;
-        }
         if (!subtitleSelectionData) {
             return;
         }
+        setIsLoading(true);
         setDictAttrAsync(dictAttrRef.current, subtitleSelectionData).then(() => {
             setDictPopupVisible(true);
+            setIsLoading(false);
         });
     }, [subtitleSelectionData]);
 
     useEffect(() => {
-        isWaitingContextFromVideoRef.current = false;
         if (contextFromVideo === undefined) {
             return;
         }
@@ -120,17 +144,19 @@ const DictPopup = function DictPopup() {
         }
         dictAttrRef.current.contentVoiceDataUrl = contextFromVideo.voiceDataUrl;
         dictAttrRef.current.contentImgDataUrl = contextFromVideo.imgDataUrl;
+        setDictPopupVisible(false);
         dispatch(openAnkiExportPopup({ ...dictAttrRef.current }));
+        setIsLoading(false);
     }, [contextFromVideo]);
 
     const openAnkiPopup = async () => {
-        isWaitingContextFromVideoRef.current = true;
-        setDictPopupVisible(false);
+        setIsLoading(true);
         dispatch(getContextFromVideo());
     };
 
     return (
         <View>
+            {isLoading && <Loading></Loading>}
             <Modal
                 animationType="slide"
                 transparent={true}
@@ -252,11 +278,11 @@ export interface AnkiExportAttr {
 
 function AnkiExportPopup() {
     const [ankiExportPopupVisible, setAnkiExportPopupVisible] = useState(false);
-    const dictAttr = useAppSelector(selectDictAttr);
+    const [ankiExportAttr, setAnkiExportAttr] = useState({} as AnkiExportAttr);
 
     const videoName = useAppSelector(selectVideoName);
-
-    const [ankiExportAttr, setAnkiExportAttr] = useState({} as AnkiExportAttr);
+    const dictAttr = useAppSelector(selectDictAttr);
+    const dispatch = useAppDispatch();
 
     useEffect(() => {
         if (!dictAttr) {
@@ -268,13 +294,14 @@ function AnkiExportPopup() {
         });
     }, [dictAttr]);
 
-    function exportToAnki() {
-        if (!ankiDeck) {
-            alert('Please connect anki first');
-            return;
-        }
-        addNote(ankiDeck, ankiExportAttr);
+    function closeAnkiExportPopup() {
         setAnkiExportPopupVisible(false);
+        dispatch(updateIsPlaying(true));
+    }
+
+    async function exportToAnki() {
+        await addNote(ankiExportAttr);
+        closeAnkiExportPopup();
     }
 
     return (
@@ -283,7 +310,7 @@ function AnkiExportPopup() {
             transparent={true}
             visible={ankiExportPopupVisible}
             onRequestClose={() => {
-                setAnkiExportPopupVisible(false);
+                closeAnkiExportPopup();
             }}
         >
             <View style={styles.ankiExportPopup}>
@@ -331,23 +358,17 @@ function AnkiExportPopup() {
                 ></AnkiExportPopupEntry>
                 <AnkiExportPopupEntry
                     title="来源"
-                    value={ankiExportAttr.remark}
-                    onValueChange={(value) => {
-                        ankiExportAttr.remark = value;
-                        setAnkiExportAttr({ ...ankiExportAttr });
-                    }}
+                    value={ankiExportAttr.pageTitle}
+                    onValueChange={() => {}}
                 ></AnkiExportPopupEntry>
                 <AnkiExportPopupEntry
                     title="图片"
                     value={ankiExportAttr.remark}
-                    onValueChange={(value) => {
-                        ankiExportAttr.remark = value;
-                        setAnkiExportAttr({ ...ankiExportAttr });
-                    }}
+                    onValueChange={() => {}}
                 ></AnkiExportPopupEntry>
                 <View style={styles.popupButtons}>
                     <View style={styles.popupButton}>
-                        <Button title="close" onPress={() => setAnkiExportPopupVisible(false)} />
+                        <Button title="close" onPress={closeAnkiExportPopup} />
                     </View>
                     <View style={styles.popupButton}>
                         <Button title="confirm" onPress={exportToAnki} />

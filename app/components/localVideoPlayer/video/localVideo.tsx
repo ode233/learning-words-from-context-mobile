@@ -64,6 +64,8 @@ export function LocalVideo() {
                 await videoRef.current!.loadAsync({
                     uri: result.uri
                 });
+                localVideoClassRef.current!.videoUri = result.uri;
+
                 dispatch(updateVideoName(result.name));
             }
         });
@@ -90,6 +92,7 @@ export function LocalVideo() {
                         dispatch(updateSubtitleText(newSubtitleText));
                     }
                 });
+                dispatch(updateSubtitleText('subtitle is loaded'));
             }
         });
     });
@@ -118,12 +121,6 @@ export function LocalVideo() {
                 style={styles.video}
                 useNativeControls
                 resizeMode={ResizeMode.CONTAIN}
-                onPlaybackStatusUpdate={(status) => {
-                    if (!status.isLoaded) {
-                        return;
-                    }
-                    dispatch(updateIsPlaying(status.isPlaying));
-                }}
                 status={{ androidImplementation: 'MediaPlayer' }}
             />
             <View>

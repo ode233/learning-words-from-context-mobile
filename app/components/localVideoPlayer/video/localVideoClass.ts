@@ -9,6 +9,7 @@ export interface ContextFromVideo {
 
 export class LocalVideoClass {
     public video: Video;
+    public videoUri: string | undefined;
 
     public constructor(video: Video) {
         this.video = video;
@@ -61,14 +62,11 @@ export class LocalVideoClass {
     }
 
     private async captureAudio(begin: number, end: number): Promise<string> {
-        const timeExtend = 200;
-        const duration = (end - begin) * 1000 + timeExtend;
+        const duration = end - begin;
 
-        let videoPath = this.video.props.source;
-        let targetSentenceVoicePath = FileSystem.documentDirectory + 'sentenceVoice.mp3';
-        console.log(videoPath, targetSentenceVoicePath);
+        let targetSentenceVoicePath = FileSystem.cacheDirectory + 'sentenceVoice.aac';
         let session = await FFmpegKit.execute(
-            `-i ${videoPath} -ss ${begin} -t ${duration} -acodec copy ${targetSentenceVoicePath}`
+            `-y -i ${this.videoUri} -ss ${begin} -t ${duration} -vn -ar 44100 -b:a 128k -c:a aac ${targetSentenceVoicePath}`
         );
         const returnCode = await session.getReturnCode();
         if (ReturnCode.isSuccess(returnCode)) {

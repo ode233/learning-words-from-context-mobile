@@ -2,6 +2,7 @@ import AnkiDroid from 'react-native-ankidroid-forked-by-ode233';
 import { MEDIA_MIME_TYPE } from 'react-native-ankidroid-forked-by-ode233/dist/types';
 import { AnkiExportAttr } from '../components/localVideoPlayer/translate/translatePopup';
 import * as FileSystem from 'expo-file-system';
+import { ToastAndroid } from 'react-native';
 
 const ANKI_DECK_NAME = 'test233';
 const ANKI_MODEL_NAME = 'test233';
@@ -15,7 +16,7 @@ const dbModelReference = 'com.ode233.learningwordsfromcontextmobile.models';
 const cardNames = ['Card', ''];
 
 // List of field names that will be used in AnkiDroid model
-export const modelFields = [
+const modelFields = [
     'Timestamp',
     'Text',
     'TextPhonetic',
@@ -160,6 +161,7 @@ const deckProperties = {
     name: ANKI_DECK_NAME,
     dbReference: dbDeckReference
 };
+
 const modelProperties = {
     name: ANKI_MODEL_NAME,
     dbReference: dbModelReference,
@@ -175,11 +177,6 @@ const settings = {
     modelProperties: modelProperties,
     deckId: undefined,
     deckProperties: deckProperties
-};
-
-export const createAnkiDeck = () => {
-    const ankiDeck = new AnkiDroid(settings);
-    return ankiDeck;
 };
 
 export const testNote = [
@@ -199,9 +196,38 @@ export const testNote = [
     'SentenceCloze'
 ];
 
-export const addNote = async (ankiDeck: AnkiDroid, ankiExportAttr: AnkiExportAttr) => {
-    // TODO: file provider
-    console.log('addNote', ankiExportAttr);
+let ankiDeck: AnkiDroid;
+checkAnkiAvailable().then((isAvailable) => {
+    if (isAvailable) {
+        initAnkiConfig();
+        ToastAndroid.showWithGravity('Anki init success!', ToastAndroid.SHORT, ToastAndroid.BOTTOM);
+    }
+});
+
+async function checkAnkiAvailable(): Promise<boolean> {
+    let isApiAvailable = await AnkiDroid.isApiAvailable();
+    if (!isApiAvailable) {
+        alert('AnkiDroid API is not available');
+        return false;
+    }
+    await AnkiDroid.requestPermission();
+    let permission = await AnkiDroid.checkPermission();
+    if (!permission) {
+        alert('AnkiDroid API permission is not granted');
+        return false;
+    }
+    return true;
+}
+
+async function initAnkiConfig() {
+    ankiDeck = new AnkiDroid(settings);
+}
+
+export const addNote = async (ankiExportAttr: AnkiExportAttr) => {
+    if (!ankiDeck) {
+        alert('Please connect anki first');
+        return;
+    }
 
     let timestamp = Date.now().toString();
 
@@ -240,9 +266,14 @@ export const addNote = async (ankiDeck: AnkiDroid, ankiExportAttr: AnkiExportAtt
         img,
         sentenceCloze
     ];
-    console.log(valueFields);
 
-    await ankiDeck.addNote(valueFields, modelFields);
+    let res = await ankiDeck.addNote(valueFields, modelFields);
+    let err = res[0];
+    if (err != null) {
+        alert('add note error');
+        return;
+    }
+    ToastAndroid.showWithGravity('Note add success!', ToastAndroid.SHORT, ToastAndroid.BOTTOM);
 };
 
 async function uploadMediaFromUri(uri: string, preferredName: string, mimeType: MEDIA_MIME_TYPE) {
@@ -251,7 +282,7 @@ async function uploadMediaFromUri(uri: string, preferredName: string, mimeType: 
     }
     let fileUri = uri;
     if (uri.startsWith('http')) {
-        let res = await FileSystem.downloadAsync(uri, FileSystem.documentDirectory + preferredName);
+        let res = await FileSystem.downloadAsync(uri, FileSystem.cacheDirectory + preferredName + '.mp3');
         if (res.status != 200) {
             alert(`download meida error: ${uri}, ${res.status}`);
             throw new Error(`download error: ${uri}, ${res.status}`);
@@ -261,7 +292,6 @@ async function uploadMediaFromUri(uri: string, preferredName: string, mimeType: 
 
     let cUri = await FileSystem.getContentUriAsync(fileUri);
     let res = await AnkiDroid.uploadMediaFromUri(cUri, preferredName, mimeType);
-    FileSystem.deleteAsync(fileUri);
 
     let err = res[0];
     if (err != null) {
