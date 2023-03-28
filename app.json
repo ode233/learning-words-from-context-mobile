@@ -31,6 +31,7 @@
             "eas": {
                 "projectId": "5050c3e8-9480-4219-b748-f83c86df18de"
             }
-        }
+        },
+        "plugins": ["@config-plugins/ffmpeg-kit-react-native"]
     }
 }

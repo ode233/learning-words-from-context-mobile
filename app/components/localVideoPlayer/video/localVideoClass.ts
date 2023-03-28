@@ -1,4 +1,6 @@
 import { Video, Audio } from 'expo-av';
+import { FFmpegKit, ReturnCode } from 'ffmpeg-kit-react-native';
+import * as FileSystem from 'expo-file-system';
 
 export interface ContextFromVideo {
     voiceDataUrl: string;
@@ -61,22 +63,25 @@ export class LocalVideoClass {
     private async captureAudio(begin: number, end: number): Promise<string> {
         const timeExtend = 200;
         const duration = (end - begin) * 1000 + timeExtend;
-        await this.seek(begin);
-        await this.pause();
-        await Audio.requestPermissionsAsync();
-        await Audio.setAudioModeAsync({});
-        const { recording } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
-        this.play();
-        return new Promise((resolve) => {
-            setTimeout(async () => {
-                await this.pause();
-                await recording.stopAndUnloadAsync();
-                const uri = recording.getURI();
-                if (uri === null) {
-                    throw new Error('uri is null');
-                }
-                resolve(uri);
-            }, duration);
-        });
+
+        let videoPath = this.video.props.source;
+        let targetSentenceVoicePath = FileSystem.documentDirectory + 'sentenceVoice.mp3';
+        console.log(videoPath, targetSentenceVoicePath);
+        let session = await FFmpegKit.execute(
+            `-i ${videoPath} -ss ${begin} -t ${duration} -acodec copy ${targetSentenceVoicePath}`
+        );
+        const returnCode = await session.getReturnCode();
+        if (ReturnCode.isSuccess(returnCode)) {
+            // SUCCESS
+            return targetSentenceVoicePath;
+        } else if (ReturnCode.isCancel(returnCode)) {
+            // CANCEL
+            alert('captureAudio canceled');
+            throw new Error('captureAudio canceled');
+        } else {
+            // ERROR
+            alert('captureAudio error');
+            throw new Error('captureAudio error');
+        }
     }
 }
