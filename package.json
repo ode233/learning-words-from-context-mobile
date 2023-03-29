@@ -45,6 +45,7 @@
     "@types/react": "~18.0.27",
     "@types/react-native": "0.71.3",
     "@types/react-redux": "^7.1.25",
+    "sharp-cli": "^4.1.1",
     "typescript": "^4.9.4"
   },
   "resolutions": {
