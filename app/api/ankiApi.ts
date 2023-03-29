@@ -4,8 +4,8 @@ import { AnkiExportAttr } from '../components/localVideoPlayer/translate/transla
 import * as FileSystem from 'expo-file-system';
 import { ToastAndroid } from 'react-native';
 
-const ANKI_DECK_NAME = 'test233';
-const ANKI_MODEL_NAME = 'test233';
+const ANKI_DECK_NAME = 'Learning words from context';
+const ANKI_MODEL_NAME = 'Learning words from context';
 
 // Used to save a reference to this deck in the SharedPreferences (can be any string)
 const dbDeckReference = 'com.ode233.learningwordsfromcontextmobile.decks';
