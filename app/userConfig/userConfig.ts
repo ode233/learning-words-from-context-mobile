@@ -25,6 +25,7 @@ function setUserConfig(config: UserConfig) {
 function initUserConfig() {
     // init user config
     let userConfig = getUserConfig();
+    userConfig.caiyunToken = '7yboofgmqoa5cbp2flgn';
     if (userConfig.caiyunToken) {
         translator = new CaiyunTranslator({ token: userConfig.caiyunToken });
     } else {
