@@ -391,7 +391,7 @@ async function createAnkiExportAttr(dictAttr: DictAttr, videoName: string) {
     ankiExportAttr.contentImgDataUrl = dictAttr.contentImgDataUrl;
     ankiExportAttr.remark = '';
     ankiExportAttr.pageIconUrl =
-        '<img src="https://raw.githubusercontent.com/ode233/learning-words-from-context-mobile/main/assets/icon.png"/>';
+        '<img src="https://raw.githubusercontent.com/ode233/learning-words-from-context-mobile/main/assets/favicon.png"/>';
     ankiExportAttr.pageTitle = videoName;
     ankiExportAttr.pageUrl = '#';
     return ankiExportAttr;
