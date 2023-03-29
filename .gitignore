@@ -136,3 +136,6 @@ web-build/
 dist/
 
 # @end expo-cli
+
+# Currently is TypeScript based project
+android/

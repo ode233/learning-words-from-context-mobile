@@ -58,60 +58,66 @@ export function LocalVideo() {
             });
     }, [getContextFromVideoTrigger]);
 
-    const selectMediaRef = useRef(() => {
-        DocumentPicker.getDocumentAsync({ type: 'audio/*' }).then(async (result) => {
-            if (result.type === 'success') {
-                await videoRef.current!.loadAsync({
-                    uri: result.uri
-                });
-                localVideoClassRef.current!.videoUri = result.uri;
+    async function selectMedia() {
+        let result = await DocumentPicker.getDocumentAsync({ type: 'audio/*' });
+        if (result.type !== 'success') {
+            return;
+        }
+        console.log(result);
 
-                dispatch(updateVideoName(result.name));
-            }
+        await videoRef.current!.loadAsync({
+            uri: result.uri
         });
-    });
+        localVideoClassRef.current!.videoUri = result.uri;
+        dispatch(updateVideoName(result.name));
+    }
 
-    const selectSubtitleRef = useRef(() => {
+    async function selectSubtitle() {
         if (!localVideoClassRef.current) {
             alert('please select media first');
             return;
         }
-        DocumentPicker.getDocumentAsync({ type: 'application/x-subrip' }).then(async (result) => {
-            if (result.type === 'success') {
-                let text = await FileSystem.readAsStringAsync(result.uri);
-                subtitleClassRef.current = new SubtitleClass(text);
-                localVideoClassRef.current!.setOntimeupdate((status: AVPlaybackStatus) => {
-                    if (!status.isLoaded || !subtitleClassRef.current) {
-                        return;
-                    }
-                    let time = status.positionMillis / 1000;
-                    let subtitleText = subtitleClassRef.current.nowSubtitleText;
-                    subtitleClassRef.current.updateSubtitle(time);
-                    let newSubtitleText = subtitleClassRef.current.nowSubtitleText;
-                    if (newSubtitleText !== subtitleText) {
-                        dispatch(updateSubtitleText(newSubtitleText));
-                    }
-                });
-                dispatch(updateSubtitleText('subtitle is loaded'));
+        let result = await DocumentPicker.getDocumentAsync({ type: 'application/x-subrip' });
+        if (result.type !== 'success') {
+            return;
+        }
+        loadSubtitle(result.uri);
+    }
+
+    async function loadSubtitle(uri: string) {
+        let text = await FileSystem.readAsStringAsync(uri);
+        subtitleClassRef.current = new SubtitleClass(text);
+        localVideoClassRef.current!.setOntimeupdate((status: AVPlaybackStatus) => {
+            if (!status.isLoaded || !subtitleClassRef.current) {
+                return;
+            }
+            let time = status.positionMillis / 1000;
+            let subtitleText = subtitleClassRef.current.nowSubtitleText;
+            subtitleClassRef.current.updateSubtitle(time);
+            let newSubtitleText = subtitleClassRef.current.nowSubtitleText;
+            if (newSubtitleText !== subtitleText) {
+                dispatch(updateSubtitleText(newSubtitleText));
             }
         });
-    });
+        dispatch(updateSubtitleText('subtitle is loaded'));
+        dispatch(updateIsPlaying(true));
+    }
 
-    const playNextRef = useRef(() => {
+    function playNext() {
         if (!localVideoClassRef.current || !subtitleClassRef.current) {
             return;
         }
         const time = subtitleClassRef.current.getNextSubtitleTime();
         localVideoClassRef.current.seekAndPlay(time);
-    });
+    }
 
-    const playPrevRef = useRef(() => {
+    function playPrev() {
         if (!localVideoClassRef.current || !subtitleClassRef.current) {
             return;
         }
         const time = subtitleClassRef.current.getPrevSubtitleTime();
         localVideoClassRef.current.seekAndPlay(time);
-    });
+    }
 
     return (
         <View>
@@ -126,7 +132,7 @@ export function LocalVideo() {
             <View>
                 <View style={styles.videoButtons}>
                     <View style={styles.videoButton}>
-                        <Button title="backward" onPress={playPrevRef.current} />
+                        <Button title="backward" onPress={playPrev} />
                     </View>
                     <View style={styles.videoButton}>
                         <Button
@@ -135,15 +141,15 @@ export function LocalVideo() {
                         />
                     </View>
                     <View style={styles.videoButton}>
-                        <Button title="forward" onPress={playNextRef.current} />
+                        <Button title="forward" onPress={playNext} />
                     </View>
                 </View>
                 <View style={styles.videoButtons}>
                     <View style={styles.videoButton}>
-                        <Button title="media" onPress={selectMediaRef.current} />
+                        <Button title="media" onPress={selectMedia} />
                     </View>
                     <View style={styles.videoButton}>
-                        <Button title="subtitle" onPress={selectSubtitleRef.current} />
+                        <Button title="subtitle" onPress={selectSubtitle} />
                     </View>
                 </View>
             </View>
