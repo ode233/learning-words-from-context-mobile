@@ -1,11 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import {
-    TextInput,
-    StyleSheet,
-    DeviceEventEmitter,
-    NativeSyntheticEvent,
-    TextInputSelectionChangeEventData
-} from 'react-native';
+import { useEffect, useRef } from 'react';
+import { TextInput, StyleSheet, NativeSyntheticEvent, TextInputSelectionChangeEventData } from 'react-native';
 import { useAppDispatch, useAppSelector } from '../../../redux/hook';
 import { openDictPopup } from '../translate/translatePopupSlice';
 import { updateIsPlaying } from '../video/localVideoSlice';
@@ -65,6 +59,9 @@ export function Subtitle() {
             multiline={true}
             numberOfLines={3}
             value={subtitleText}
+            onTouchStart={() => {
+                dispatch(updateIsPlaying(false));
+            }}
             onSelectionChange={onSubtitleSelectionChange}
         />
     );

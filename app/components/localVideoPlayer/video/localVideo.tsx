@@ -1,6 +1,6 @@
-import { AVPlaybackStatus, AVPlaybackStatusSuccess, ResizeMode, Video, Audio } from 'expo-av';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Button, View, StyleSheet, Text, DeviceEventEmitter } from 'react-native';
+import { AVPlaybackStatus, ResizeMode, Video } from 'expo-av';
+import { useEffect, useRef } from 'react';
+import { Button, View, StyleSheet, Text } from 'react-native';
 import { ContextFromVideo, LocalVideoClass } from './localVideoClass';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
@@ -15,11 +15,22 @@ import {
     updateIsPlaying,
     updateVideoName
 } from './localVideoSlice';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const LAST_RECORD_STORAGE_KEY = 'lastRecord';
+const LAST_RECORD_TIME_STORAGE_KEY = 'lastRecordTime';
+
+interface Record {
+    videoName: string;
+    videoUri: string;
+    subtitleUri: string;
+}
 
 export function LocalVideo() {
     const videoRef = useRef<Video>(null);
     const localVideoClassRef = useRef<LocalVideoClass>();
     const subtitleClassRef = useRef<SubtitleClass>();
+    const recordRef = useRef<Record>({} as Record);
 
     const dispatch = useAppDispatch();
     // TODO: the re-render is not necessary, can only listen the change?
@@ -29,6 +40,22 @@ export function LocalVideo() {
 
     useEffect(() => {
         localVideoClassRef.current = new LocalVideoClass(videoRef.current!);
+        loadRecord();
+
+        async function loadRecord() {
+            let recordJsonValue = await AsyncStorage.getItem(LAST_RECORD_STORAGE_KEY);
+            let recordTime = await AsyncStorage.getItem(LAST_RECORD_TIME_STORAGE_KEY);
+            if (!recordJsonValue) {
+                return;
+            }
+            let record: Record = JSON.parse(recordJsonValue);
+            if (!record.videoUri) {
+                return;
+            }
+            await loadMedia(record.videoUri, record.videoName);
+            localVideoClassRef.current?.seek(Number(recordTime));
+            await loadSubtitle(record.subtitleUri);
+        }
     }, []);
 
     useEffect(() => {
@@ -59,17 +86,24 @@ export function LocalVideo() {
     }, [getContextFromVideoTrigger]);
 
     async function selectMedia() {
-        let result = await DocumentPicker.getDocumentAsync({ type: 'audio/*' });
+        let result = await DocumentPicker.getDocumentAsync({ type: ['audio/*', 'video/*'] });
         if (result.type !== 'success') {
             return;
         }
-        console.log(result);
 
+        loadMedia(result.uri, result.name);
+    }
+
+    async function loadMedia(uri: string, name: string) {
         await videoRef.current!.loadAsync({
-            uri: result.uri
+            uri: uri
         });
-        localVideoClassRef.current!.videoUri = result.uri;
-        dispatch(updateVideoName(result.name));
+        localVideoClassRef.current!.videoUri = uri;
+        dispatch(updateVideoName(name));
+
+        recordRef.current.videoName = name;
+        recordRef.current.videoUri = uri;
+        AsyncStorage.setItem(LAST_RECORD_STORAGE_KEY, JSON.stringify(recordRef.current));
     }
 
     async function selectSubtitle() {
@@ -98,9 +132,14 @@ export function LocalVideo() {
             if (newSubtitleText !== subtitleText) {
                 dispatch(updateSubtitleText(newSubtitleText));
             }
+
+            // save record time
+            AsyncStorage.setItem(LAST_RECORD_TIME_STORAGE_KEY, time.toString());
         });
         dispatch(updateSubtitleText('subtitle is loaded'));
-        dispatch(updateIsPlaying(true));
+
+        recordRef.current.subtitleUri = uri;
+        AsyncStorage.setItem(LAST_RECORD_STORAGE_KEY, JSON.stringify(recordRef.current));
     }
 
     function playNext() {
@@ -132,6 +171,14 @@ export function LocalVideo() {
             <View>
                 <View style={styles.videoButtons}>
                     <View style={styles.videoButton}>
+                        <Button title="media" onPress={selectMedia} />
+                    </View>
+                    <View style={styles.videoButton}>
+                        <Button title="subtitle" onPress={selectSubtitle} />
+                    </View>
+                </View>
+                <View style={styles.videoButtons}>
+                    <View style={styles.videoButton}>
                         <Button title="backward" onPress={playPrev} />
                     </View>
                     <View style={styles.videoButton}>
@@ -142,14 +189,6 @@ export function LocalVideo() {
                     </View>
                     <View style={styles.videoButton}>
                         <Button title="forward" onPress={playNext} />
-                    </View>
-                </View>
-                <View style={styles.videoButtons}>
-                    <View style={styles.videoButton}>
-                        <Button title="media" onPress={selectMedia} />
-                    </View>
-                    <View style={styles.videoButton}>
-                        <Button title="subtitle" onPress={selectSubtitle} />
                     </View>
                 </View>
             </View>

@@ -2,7 +2,7 @@ import AnkiDroid from 'react-native-ankidroid-forked-by-ode233';
 import { MEDIA_MIME_TYPE } from 'react-native-ankidroid-forked-by-ode233/dist/types';
 import { AnkiExportAttr } from '../components/localVideoPlayer/translate/translatePopup';
 import * as FileSystem from 'expo-file-system';
-import { ToastAndroid } from 'react-native';
+import Toast from 'react-native-root-toast';
 
 const ANKI_DECK_NAME = 'Learning words from context';
 const ANKI_MODEL_NAME = 'Learning words from context';
@@ -180,7 +180,10 @@ let ankiDeck: AnkiDroid;
 checkAnkiAvailable().then((isAvailable) => {
     if (isAvailable) {
         initAnkiConfig();
-        ToastAndroid.showWithGravity('Anki init success!', ToastAndroid.SHORT, ToastAndroid.BOTTOM);
+        Toast.show('Anki init success!', {
+            duration: Toast.durations.SHORT,
+            position: Toast.positions.BOTTOM
+        });
     }
 });
 
@@ -253,7 +256,10 @@ export const addNote = async (ankiExportAttr: AnkiExportAttr) => {
         alert('add note error');
         return;
     }
-    ToastAndroid.showWithGravity('Note add success!', ToastAndroid.SHORT, ToastAndroid.BOTTOM);
+    Toast.show('Note add success!', {
+        duration: Toast.durations.SHORT,
+        position: Toast.positions.BOTTOM
+    });
 };
 
 async function uploadMediaFromUri(uri: string, preferredName: string, mimeType: MEDIA_MIME_TYPE) {
