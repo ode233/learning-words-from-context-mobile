@@ -15,23 +15,18 @@ import { Audio } from 'expo-av';
 import styled from '@emotion/native';
 import { openAnkiExportPopup, selectDictAttr, selectSubtitleSelectionData } from './translatePopupSlice';
 import { useAppDispatch, useAppSelector } from '../../../redux/hook';
-import {
-    getContextFromVideo,
-    updateIsPlaying,
-    selectContextFromVideo,
-    selectVideoName
-} from '../video/localVideoSlice';
 import { addNote } from '../../../api/ankiApi';
+import { LocalVideoClass } from '../video/localVideoClass';
 
 const YOUDAO_VOICE_URL = 'https://dict.youdao.com/dictvoice?type=0&audio=';
 const DICT_POPUP_WIDTH = 300;
 const DICT_POPUP_HEIGHT = 300;
 
-export function TranslatePopup() {
+export function TranslatePopup({ localVideoClass }: { localVideoClass: LocalVideoClass }) {
     return (
         <View>
-            <DictPopup></DictPopup>
-            <AnkiExportPopup></AnkiExportPopup>
+            <DictPopup localVideoClass={localVideoClass}></DictPopup>
+            <AnkiExportPopup localVideoClass={localVideoClass}></AnkiExportPopup>
         </View>
     );
 }
@@ -112,11 +107,10 @@ export interface DictAttr {
     contentImgDataUrl: string;
 }
 
-const DictPopup = function DictPopup() {
+const DictPopup = function DictPopup({ localVideoClass }: { localVideoClass: LocalVideoClass }) {
     const [dictPopupVisible, setDictPopupVisible] = useState(false);
 
     const subtitleSelectionData = useAppSelector(selectSubtitleSelectionData);
-    const contextFromVideo = useAppSelector(selectContextFromVideo);
     const dispatch = useAppDispatch();
 
     const dictAttrRef = useRef({} as DictAttr);
@@ -134,12 +128,12 @@ const DictPopup = function DictPopup() {
         });
     }, [subtitleSelectionData]);
 
-    useEffect(() => {
-        if (contextFromVideo === undefined) {
-            return;
-        }
+    const openAnkiPopup = async () => {
+        setIsLoading(true);
+        let contextFromVideo = await localVideoClass.getContextFromVideo();
         if (!contextFromVideo.voiceDataUrl) {
             alert('Get context from video error');
+            setIsLoading(false);
             return;
         }
         dictAttrRef.current.contentVoiceDataUrl = contextFromVideo.voiceDataUrl;
@@ -147,11 +141,6 @@ const DictPopup = function DictPopup() {
         setDictPopupVisible(false);
         dispatch(openAnkiExportPopup({ ...dictAttrRef.current }));
         setIsLoading(false);
-    }, [contextFromVideo]);
-
-    const openAnkiPopup = async () => {
-        setIsLoading(true);
-        dispatch(getContextFromVideo());
     };
 
     return (
@@ -169,7 +158,7 @@ const DictPopup = function DictPopup() {
                     style={styles.centeredView}
                     activeOpacity={1}
                     onPressOut={() => {
-                        dispatch(updateIsPlaying(true));
+                        localVideoClass.play();
                         setDictPopupVisible(false);
                     }}
                 >
@@ -276,11 +265,10 @@ export interface AnkiExportAttr {
     pageUrl: string;
 }
 
-function AnkiExportPopup() {
+function AnkiExportPopup({ localVideoClass }: { localVideoClass: LocalVideoClass }) {
     const [ankiExportPopupVisible, setAnkiExportPopupVisible] = useState(false);
     const [ankiExportAttr, setAnkiExportAttr] = useState({} as AnkiExportAttr);
 
-    const videoName = useAppSelector(selectVideoName);
     const dictAttr = useAppSelector(selectDictAttr);
     const dispatch = useAppDispatch();
 
@@ -289,14 +277,14 @@ function AnkiExportPopup() {
             return;
         }
         setAnkiExportPopupVisible(true);
-        createAnkiExportAttr(dictAttr, videoName).then((ankiExportAttr) => {
+        createAnkiExportAttr(dictAttr, localVideoClass.videoName!).then((ankiExportAttr) => {
             setAnkiExportAttr(ankiExportAttr);
         });
     }, [dictAttr]);
 
     function closeAnkiExportPopup() {
         setAnkiExportPopupVisible(false);
-        dispatch(updateIsPlaying(true));
+        localVideoClass.play();
     }
 
     async function exportToAnki() {

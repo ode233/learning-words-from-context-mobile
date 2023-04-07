@@ -1,6 +1,7 @@
 import { Video, Audio } from 'expo-av';
 import { FFmpegKit, ReturnCode } from 'ffmpeg-kit-react-native';
 import * as FileSystem from 'expo-file-system';
+import { SubtitleClass } from '../subtitle/subtitleClass';
 
 export interface ContextFromVideo {
     voiceDataUrl: string;
@@ -8,21 +9,21 @@ export interface ContextFromVideo {
 }
 
 export class LocalVideoClass {
-    public video: Video;
-    public videoUri: string | undefined;
+    public video?: Video;
+    public videoUri?: string;
+    public videoName?: string;
+    public subtitleClass?: SubtitleClass;
 
-    public constructor(video: Video) {
-        this.video = video;
-    }
+    public constructor() {}
 
     public async seek(time: number) {
-        await this.video.setPositionAsync(time * 1000);
+        await this.video?.setPositionAsync(time * 1000);
     }
     public async play() {
-        await this.video.playAsync();
+        await this.video?.playAsync();
     }
     public async pause() {
-        await this.video.pauseAsync();
+        await this.video?.pauseAsync();
     }
     public async getCurrentTime(): Promise<number | null> {
         let status = await this.video!.getStatusAsync();
@@ -33,11 +34,11 @@ export class LocalVideoClass {
     }
 
     public setOntimeupdate(f: any): void {
-        this.video.setOnPlaybackStatusUpdate(f);
+        this.video?.setOnPlaybackStatusUpdate(f);
     }
 
     // all time unit is second
-    public async seekAndPlay(time: number | null) {
+    public async seekAndPlay(time: number | null | undefined) {
         if (!time) {
             return;
         }
@@ -45,11 +46,27 @@ export class LocalVideoClass {
         await this.play();
     }
 
-    public async getContextFromVideo(begin: number, end: number): Promise<ContextFromVideo> {
+    public playNext() {
+        const time = this.subtitleClass?.getNextSubtitleTime();
+        this.seekAndPlay(time);
+    }
+
+    public playPrev() {
+        const time = this.subtitleClass?.getPrevSubtitleTime();
+        this.seekAndPlay(time);
+    }
+
+    public async getContextFromVideo(): Promise<ContextFromVideo> {
         let contextFromVideo: ContextFromVideo = {
             voiceDataUrl: '',
             imgDataUrl: ''
         };
+        let nowSubtitleNode = this.subtitleClass?.getNowSubtitleNode();
+        if (!nowSubtitleNode) {
+            return contextFromVideo;
+        }
+        let begin = nowSubtitleNode?.begin;
+        let end = nowSubtitleNode?.end;
         contextFromVideo.imgDataUrl = this.captureVideo(begin);
         contextFromVideo.voiceDataUrl = await this.captureAudio(begin, end);
         return contextFromVideo;

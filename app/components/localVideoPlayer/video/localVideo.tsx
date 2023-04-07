@@ -1,20 +1,12 @@
 import { AVPlaybackStatus, ResizeMode, Video } from 'expo-av';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Button, View, StyleSheet, Text } from 'react-native';
-import { ContextFromVideo, LocalVideoClass } from './localVideoClass';
+import { LocalVideoClass } from './localVideoClass';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import { SubtitleClass } from '../subtitle/subtitleClass';
-import { useAppDispatch, useAppSelector } from '../../../redux/hook';
+import { useAppDispatch } from '../../../redux/hook';
 import { updateSubtitleText } from '../subtitle/subtitleSlice';
-import {
-    selectContextFromVideoTrigger,
-    selectIsPlaying,
-    selectVideoName,
-    updateContextFromVideo,
-    updateIsPlaying,
-    updateVideoName
-} from './localVideoSlice';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const LAST_RECORD_STORAGE_KEY = 'lastRecord';
@@ -26,20 +18,16 @@ interface Record {
     subtitleUri: string;
 }
 
-export function LocalVideo() {
+export function LocalVideo({ localVideoClass }: { localVideoClass: LocalVideoClass }) {
     const videoRef = useRef<Video>(null);
-    const localVideoClassRef = useRef<LocalVideoClass>();
-    const subtitleClassRef = useRef<SubtitleClass>();
     const recordRef = useRef<Record>({} as Record);
 
+    const [videoName, setVideoName] = useState('wait for play');
+
     const dispatch = useAppDispatch();
-    // TODO: the re-render is not necessary, can only listen the change?
-    const getContextFromVideoTrigger = useAppSelector(selectContextFromVideoTrigger);
-    const isPlaying = useAppSelector(selectIsPlaying);
-    const videoName = useAppSelector(selectVideoName);
 
     useEffect(() => {
-        localVideoClassRef.current = new LocalVideoClass(videoRef.current!);
+        localVideoClass.video = videoRef.current!;
         loadRecord();
 
         async function loadRecord() {
@@ -53,37 +41,10 @@ export function LocalVideo() {
                 return;
             }
             await loadMedia(record.videoUri, record.videoName);
-            localVideoClassRef.current?.seek(Number(recordTime));
+            localVideoClass.seek(Number(recordTime));
             await loadSubtitle(record.subtitleUri);
         }
     }, []);
-
-    useEffect(() => {
-        if (isPlaying === undefined) {
-            return;
-        }
-        if (isPlaying) {
-            localVideoClassRef.current?.play();
-        } else {
-            localVideoClassRef.current?.pause();
-        }
-    }, [isPlaying]);
-
-    useEffect(() => {
-        if (getContextFromVideoTrigger === undefined) {
-            return;
-        }
-        let nowSubtitleNode = subtitleClassRef.current?.getNowSubtitleNode();
-        if (!nowSubtitleNode) {
-            dispatch(updateContextFromVideo({} as ContextFromVideo));
-            return;
-        }
-        localVideoClassRef
-            .current!.getContextFromVideo(nowSubtitleNode?.begin, nowSubtitleNode?.end)
-            .then((contextFromVideo) => {
-                dispatch(updateContextFromVideo(contextFromVideo));
-            });
-    }, [getContextFromVideoTrigger]);
 
     async function selectMedia() {
         let result = await DocumentPicker.getDocumentAsync({ type: ['audio/*', 'video/*'] });
@@ -98,16 +59,18 @@ export function LocalVideo() {
         await videoRef.current!.loadAsync({
             uri: uri
         });
-        localVideoClassRef.current!.videoUri = uri;
-        dispatch(updateVideoName(name));
+        localVideoClass.videoUri = uri;
+        localVideoClass.videoName = name;
 
         recordRef.current.videoName = name;
         recordRef.current.videoUri = uri;
         AsyncStorage.setItem(LAST_RECORD_STORAGE_KEY, JSON.stringify(recordRef.current));
+
+        setVideoName(name);
     }
 
     async function selectSubtitle() {
-        if (!localVideoClassRef.current) {
+        if (!localVideoClass.video) {
             alert('please select media first');
             return;
         }
@@ -120,15 +83,15 @@ export function LocalVideo() {
 
     async function loadSubtitle(uri: string) {
         let text = await FileSystem.readAsStringAsync(uri);
-        subtitleClassRef.current = new SubtitleClass(text);
-        localVideoClassRef.current!.setOntimeupdate((status: AVPlaybackStatus) => {
-            if (!status.isLoaded || !subtitleClassRef.current) {
+        localVideoClass.subtitleClass = new SubtitleClass(text);
+        localVideoClass.setOntimeupdate((status: AVPlaybackStatus) => {
+            if (!status.isLoaded || !localVideoClass.subtitleClass) {
                 return;
             }
             let time = status.positionMillis / 1000;
-            let subtitleText = subtitleClassRef.current.nowSubtitleText;
-            subtitleClassRef.current.updateSubtitle(time);
-            let newSubtitleText = subtitleClassRef.current.nowSubtitleText;
+            let subtitleText = localVideoClass.subtitleClass.nowSubtitleText;
+            localVideoClass.subtitleClass.updateSubtitle(time);
+            let newSubtitleText = localVideoClass.subtitleClass.nowSubtitleText;
             if (newSubtitleText !== subtitleText) {
                 dispatch(updateSubtitleText(newSubtitleText));
             }
@@ -140,22 +103,6 @@ export function LocalVideo() {
 
         recordRef.current.subtitleUri = uri;
         AsyncStorage.setItem(LAST_RECORD_STORAGE_KEY, JSON.stringify(recordRef.current));
-    }
-
-    function playNext() {
-        if (!localVideoClassRef.current || !subtitleClassRef.current) {
-            return;
-        }
-        const time = subtitleClassRef.current.getNextSubtitleTime();
-        localVideoClassRef.current.seekAndPlay(time);
-    }
-
-    function playPrev() {
-        if (!localVideoClassRef.current || !subtitleClassRef.current) {
-            return;
-        }
-        const time = subtitleClassRef.current.getPrevSubtitleTime();
-        localVideoClassRef.current.seekAndPlay(time);
     }
 
     return (
@@ -179,16 +126,26 @@ export function LocalVideo() {
                 </View>
                 <View style={styles.videoButtons}>
                     <View style={styles.videoButton}>
-                        <Button title="backward" onPress={playPrev} />
+                        <Button title="backward" onPress={localVideoClass.playPrev} />
                     </View>
                     <View style={styles.videoButton}>
                         <Button
-                            title={isPlaying ? 'Pause' : 'Play'}
-                            onPress={() => dispatch(updateIsPlaying(!isPlaying))}
+                            title="Play"
+                            onPress={async () => {
+                                let status = await videoRef.current?.getStatusAsync();
+                                if (!status || !status.isLoaded) {
+                                    return;
+                                }
+                                if (status.isPlaying) {
+                                    localVideoClass.pause();
+                                } else {
+                                    localVideoClass.play();
+                                }
+                            }}
                         />
                     </View>
                     <View style={styles.videoButton}>
-                        <Button title="forward" onPress={playNext} />
+                        <Button title="forward" onPress={localVideoClass.playNext} />
                     </View>
                 </View>
             </View>
