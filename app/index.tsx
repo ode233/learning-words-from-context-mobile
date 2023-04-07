@@ -2,7 +2,7 @@ import 'expo-dev-client';
 import { Stack } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { Provider } from 'react-redux';
-import LocalVideoPlayer from './components/localVideoPlayer/localVideoPlayer';
+import LocalVideoPlayer from './components/localVideoPlayer/LocalVideoPlayer';
 import { store } from './redux/store';
 import { RootSiblingParent } from 'react-native-root-siblings';
 

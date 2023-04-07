@@ -3,14 +3,14 @@ import { TextInput, StyleSheet, NativeSyntheticEvent, TextInputSelectionChangeEv
 import { useAppDispatch, useAppSelector } from '../../../redux/hook';
 import { openDictPopup } from '../translate/translatePopupSlice';
 import { selectSubtitleText } from './subtitleSlice';
-import { LocalVideoClass } from '../video/localVideoClass';
+import { VideoController } from '../VideoController';
 
 export interface SubtitleSelectionData {
     text: string;
     sentence: string;
 }
 
-export function Subtitle({ localVideoClass }: { localVideoClass: LocalVideoClass }) {
+export function Subtitle({ videoController }: { videoController: VideoController }) {
     const subtitleText = useAppSelector(selectSubtitleText);
     const dispatch = useAppDispatch();
     const subtitleRef = useRef<TextInput>(null);
@@ -38,7 +38,7 @@ export function Subtitle({ localVideoClass }: { localVideoClass: LocalVideoClass
             text: text,
             sentence: sentence
         };
-        localVideoClass.pause();
+        videoController.pause();
         dispatch(openDictPopup(SubtitleSelectionData));
 
         cancelSelection();
@@ -60,7 +60,7 @@ export function Subtitle({ localVideoClass }: { localVideoClass: LocalVideoClass
             numberOfLines={3}
             value={subtitleText}
             onTouchStart={() => {
-                localVideoClass.pause();
+                videoController.pause();
             }}
             onSelectionChange={onSubtitleSelectionChange}
         />

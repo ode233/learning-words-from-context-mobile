@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '../../../redux/store';
-import { SubtitleSelectionData } from '../subtitle/subtitle';
-import { DictAttr } from './translatePopup';
+import { SubtitleSelectionData } from '../subtitle/Subtitle';
+import { DictAttr } from './TranslatePopup';
 
 // Define a type for the slice state
 interface TranslatePopupState {

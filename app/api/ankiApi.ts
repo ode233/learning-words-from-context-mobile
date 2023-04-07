@@ -1,6 +1,6 @@
 import AnkiDroid from 'react-native-ankidroid-forked-by-ode233';
 import { MEDIA_MIME_TYPE } from 'react-native-ankidroid-forked-by-ode233/dist/types';
-import { AnkiExportAttr } from '../components/localVideoPlayer/translate/translatePopup';
+import { AnkiExportAttr } from '../components/localVideoPlayer/translate/TranslatePopup';
 import * as FileSystem from 'expo-file-system';
 import Toast from 'react-native-root-toast';
 

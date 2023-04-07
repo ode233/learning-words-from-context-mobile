@@ -1,23 +1,10 @@
 import { NodeList, parseSync } from 'subtitle-simplify';
 
-export const BEFORE_SUBTITLE_BEGIN_INDEX = -1;
-export const AFTER_SUBTITLE_END_INDEX = -2;
-export const NOT_MATCH_SUBTITLE_INDEX = -3;
+const BEFORE_SUBTITLE_BEGIN_INDEX = -1;
+const AFTER_SUBTITLE_END_INDEX = -2;
+const NOT_MATCH_SUBTITLE_INDEX = -3;
 
-function generateSubtitleNodeList(nodes: NodeList): Array<SubtitleNode> {
-    let subtitleNodeList: Array<SubtitleNode> = [];
-    for (let node of nodes) {
-        if (node.type !== 'cue') {
-            continue;
-        }
-        const begin = node.data.start / 10 ** 3;
-        const end = node.data.end / 10 ** 3;
-        subtitleNodeList.push(new SubtitleNode(begin, end, node.data.text));
-    }
-    return subtitleNodeList;
-}
-
-export class SubtitleNode {
+class SubtitleNode {
     // second
     public begin: number;
     public end: number;
@@ -41,7 +28,7 @@ class SubtitleIndexMatchResult {
     }
 }
 
-export class SubtitleClass {
+export class SubtitleController {
     public subtitleNodeList: Array<SubtitleNode> = [];
 
     public nowSubTitleIndex = NOT_MATCH_SUBTITLE_INDEX;
@@ -54,7 +41,7 @@ export class SubtitleClass {
 
     public constructor(text: string) {
         let nodes = parseSync(text);
-        let subtitleNodeList = generateSubtitleNodeList(nodes);
+        let subtitleNodeList = SubtitleController.generateSubtitleNodeList(nodes);
         this.subtitleNodeList = subtitleNodeList;
         this.subtitleBeginTime = subtitleNodeList[0].begin;
         this.subtitleEndTime = subtitleNodeList[subtitleNodeList.length - 1].end;
@@ -151,5 +138,18 @@ export class SubtitleClass {
         } else {
             return this.binarySearch(mid + 1, j, target);
         }
+    }
+
+    static generateSubtitleNodeList(nodes: NodeList): Array<SubtitleNode> {
+        let subtitleNodeList: Array<SubtitleNode> = [];
+        for (let node of nodes) {
+            if (node.type !== 'cue') {
+                continue;
+            }
+            const begin = node.data.start / 10 ** 3;
+            const end = node.data.end / 10 ** 3;
+            subtitleNodeList.push(new SubtitleNode(begin, end, node.data.text));
+        }
+        return subtitleNodeList;
     }
 }

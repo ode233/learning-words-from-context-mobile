@@ -1,19 +1,19 @@
 import { View, StyleSheet } from 'react-native';
 import { init } from '../../userConfig/userConfig';
-import { Subtitle } from './subtitle/subtitle';
-import { TranslatePopup } from './translate/translatePopup';
-import { LocalVideo } from './video/localVideo';
-import { LocalVideoClass } from './video/localVideoClass';
+import { Subtitle } from './subtitle/Subtitle';
+import { TranslatePopup } from './translate/TranslatePopup';
+import { VideoController } from './VideoController';
+import { LocalVideo } from './video/LocalVideo';
 
 init();
 
 export default function LocalVideoPlayer() {
-    let localVideoClass = new LocalVideoClass();
+    let videoController = new VideoController();
     return (
         <View style={styles.container}>
-            <LocalVideo localVideoClass={localVideoClass}></LocalVideo>
-            <Subtitle localVideoClass={localVideoClass}></Subtitle>
-            <TranslatePopup localVideoClass={localVideoClass}></TranslatePopup>
+            <LocalVideo videoController={videoController}></LocalVideo>
+            <Subtitle videoController={videoController}></Subtitle>
+            <TranslatePopup videoController={videoController}></TranslatePopup>
         </View>
     );
 }

@@ -1,18 +1,18 @@
-import { Video, Audio } from 'expo-av';
+import { Video } from 'expo-av';
 import { FFmpegKit, ReturnCode } from 'ffmpeg-kit-react-native';
 import * as FileSystem from 'expo-file-system';
-import { SubtitleClass } from '../subtitle/subtitleClass';
+import { SubtitleController } from './SubtitleController';
 
-export interface ContextFromVideo {
+interface ContextFromVideo {
     voiceDataUrl: string;
     imgDataUrl: string;
 }
 
-export class LocalVideoClass {
+export class VideoController {
     public video?: Video;
     public videoUri?: string;
     public videoName?: string;
-    public subtitleClass?: SubtitleClass;
+    public subtitleController?: SubtitleController;
 
     public constructor() {}
 
@@ -46,13 +46,17 @@ export class LocalVideoClass {
         await this.play();
     }
 
+    public async createSubtitleController(text: string) {
+        this.subtitleController = new SubtitleController(text);
+    }
+
     public playNext() {
-        const time = this.subtitleClass?.getNextSubtitleTime();
+        const time = this.subtitleController?.getNextSubtitleTime();
         this.seekAndPlay(time);
     }
 
     public playPrev() {
-        const time = this.subtitleClass?.getPrevSubtitleTime();
+        const time = this.subtitleController?.getPrevSubtitleTime();
         this.seekAndPlay(time);
     }
 
@@ -61,7 +65,7 @@ export class LocalVideoClass {
             voiceDataUrl: '',
             imgDataUrl: ''
         };
-        let nowSubtitleNode = this.subtitleClass?.getNowSubtitleNode();
+        let nowSubtitleNode = this.subtitleController?.getNowSubtitleNode();
         if (!nowSubtitleNode) {
             return contextFromVideo;
         }

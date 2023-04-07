@@ -9,24 +9,24 @@ import {
     ActivityIndicator
 } from 'react-native';
 import { translator } from '../../../userConfig/userConfig';
-import { SubtitleSelectionData } from '../subtitle/subtitle';
+import { SubtitleSelectionData } from '../subtitle/Subtitle';
 import { FontAwesome } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
 import styled from '@emotion/native';
 import { openAnkiExportPopup, selectDictAttr, selectSubtitleSelectionData } from './translatePopupSlice';
 import { useAppDispatch, useAppSelector } from '../../../redux/hook';
 import { addNote } from '../../../api/ankiApi';
-import { LocalVideoClass } from '../video/localVideoClass';
+import { VideoController } from '../VideoController';
 
 const YOUDAO_VOICE_URL = 'https://dict.youdao.com/dictvoice?type=0&audio=';
 const DICT_POPUP_WIDTH = 300;
 const DICT_POPUP_HEIGHT = 300;
 
-export function TranslatePopup({ localVideoClass }: { localVideoClass: LocalVideoClass }) {
+export function TranslatePopup({ videoController }: { videoController: VideoController }) {
     return (
         <View>
-            <DictPopup localVideoClass={localVideoClass}></DictPopup>
-            <AnkiExportPopup localVideoClass={localVideoClass}></AnkiExportPopup>
+            <DictPopup videoController={videoController}></DictPopup>
+            <AnkiExportPopup videoController={videoController}></AnkiExportPopup>
         </View>
     );
 }
@@ -107,7 +107,7 @@ export interface DictAttr {
     contentImgDataUrl: string;
 }
 
-const DictPopup = function DictPopup({ localVideoClass }: { localVideoClass: LocalVideoClass }) {
+const DictPopup = function DictPopup({ videoController }: { videoController: VideoController }) {
     const [dictPopupVisible, setDictPopupVisible] = useState(false);
 
     const subtitleSelectionData = useAppSelector(selectSubtitleSelectionData);
@@ -130,7 +130,7 @@ const DictPopup = function DictPopup({ localVideoClass }: { localVideoClass: Loc
 
     const openAnkiPopup = async () => {
         setIsLoading(true);
-        let contextFromVideo = await localVideoClass.getContextFromVideo();
+        let contextFromVideo = await videoController.getContextFromVideo();
         if (!contextFromVideo.voiceDataUrl) {
             alert('Get context from video error');
             setIsLoading(false);
@@ -158,7 +158,7 @@ const DictPopup = function DictPopup({ localVideoClass }: { localVideoClass: Loc
                     style={styles.centeredView}
                     activeOpacity={1}
                     onPressOut={() => {
-                        localVideoClass.play();
+                        videoController.play();
                         setDictPopupVisible(false);
                     }}
                 >
@@ -265,7 +265,7 @@ export interface AnkiExportAttr {
     pageUrl: string;
 }
 
-function AnkiExportPopup({ localVideoClass }: { localVideoClass: LocalVideoClass }) {
+function AnkiExportPopup({ videoController }: { videoController: VideoController }) {
     const [ankiExportPopupVisible, setAnkiExportPopupVisible] = useState(false);
     const [ankiExportAttr, setAnkiExportAttr] = useState({} as AnkiExportAttr);
 
@@ -277,14 +277,14 @@ function AnkiExportPopup({ localVideoClass }: { localVideoClass: LocalVideoClass
             return;
         }
         setAnkiExportPopupVisible(true);
-        createAnkiExportAttr(dictAttr, localVideoClass.videoName!).then((ankiExportAttr) => {
+        createAnkiExportAttr(dictAttr, videoController.videoName!).then((ankiExportAttr) => {
             setAnkiExportAttr(ankiExportAttr);
         });
     }, [dictAttr]);
 
     function closeAnkiExportPopup() {
         setAnkiExportPopupVisible(false);
-        localVideoClass.play();
+        videoController.play();
     }
 
     async function exportToAnki() {

@@ -1,10 +1,9 @@
 import { AVPlaybackStatus, ResizeMode, Video } from 'expo-av';
 import { useEffect, useRef, useState } from 'react';
 import { Button, View, StyleSheet, Text } from 'react-native';
-import { LocalVideoClass } from './localVideoClass';
+import { VideoController } from '../VideoController';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
-import { SubtitleClass } from '../subtitle/subtitleClass';
 import { useAppDispatch } from '../../../redux/hook';
 import { updateSubtitleText } from '../subtitle/subtitleSlice';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -18,7 +17,7 @@ interface Record {
     subtitleUri: string;
 }
 
-export function LocalVideo({ localVideoClass }: { localVideoClass: LocalVideoClass }) {
+export function LocalVideo({ videoController }: { videoController: VideoController }) {
     const videoRef = useRef<Video>(null);
     const recordRef = useRef<Record>({} as Record);
 
@@ -27,7 +26,7 @@ export function LocalVideo({ localVideoClass }: { localVideoClass: LocalVideoCla
     const dispatch = useAppDispatch();
 
     useEffect(() => {
-        localVideoClass.video = videoRef.current!;
+        videoController.video = videoRef.current!;
         loadRecord();
 
         async function loadRecord() {
@@ -41,7 +40,7 @@ export function LocalVideo({ localVideoClass }: { localVideoClass: LocalVideoCla
                 return;
             }
             await loadMedia(record.videoUri, record.videoName);
-            localVideoClass.seek(Number(recordTime));
+            videoController.seek(Number(recordTime));
             await loadSubtitle(record.subtitleUri);
         }
     }, []);
@@ -59,8 +58,8 @@ export function LocalVideo({ localVideoClass }: { localVideoClass: LocalVideoCla
         await videoRef.current!.loadAsync({
             uri: uri
         });
-        localVideoClass.videoUri = uri;
-        localVideoClass.videoName = name;
+        videoController.videoUri = uri;
+        videoController.videoName = name;
 
         recordRef.current.videoName = name;
         recordRef.current.videoUri = uri;
@@ -70,7 +69,7 @@ export function LocalVideo({ localVideoClass }: { localVideoClass: LocalVideoCla
     }
 
     async function selectSubtitle() {
-        if (!localVideoClass.video) {
+        if (!videoController.video) {
             alert('please select media first');
             return;
         }
@@ -83,15 +82,15 @@ export function LocalVideo({ localVideoClass }: { localVideoClass: LocalVideoCla
 
     async function loadSubtitle(uri: string) {
         let text = await FileSystem.readAsStringAsync(uri);
-        localVideoClass.subtitleClass = new SubtitleClass(text);
-        localVideoClass.setOntimeupdate((status: AVPlaybackStatus) => {
-            if (!status.isLoaded || !localVideoClass.subtitleClass) {
+        videoController.createSubtitleController(text);
+        videoController.setOntimeupdate((status: AVPlaybackStatus) => {
+            if (!status.isLoaded || !videoController.subtitleController) {
                 return;
             }
             let time = status.positionMillis / 1000;
-            let subtitleText = localVideoClass.subtitleClass.nowSubtitleText;
-            localVideoClass.subtitleClass.updateSubtitle(time);
-            let newSubtitleText = localVideoClass.subtitleClass.nowSubtitleText;
+            let subtitleText = videoController.subtitleController.nowSubtitleText;
+            videoController.subtitleController.updateSubtitle(time);
+            let newSubtitleText = videoController.subtitleController.nowSubtitleText;
             if (newSubtitleText !== subtitleText) {
                 dispatch(updateSubtitleText(newSubtitleText));
             }
@@ -126,7 +125,12 @@ export function LocalVideo({ localVideoClass }: { localVideoClass: LocalVideoCla
                 </View>
                 <View style={styles.videoButtons}>
                     <View style={styles.videoButton}>
-                        <Button title="backward" onPress={localVideoClass.playPrev} />
+                        <Button
+                            title="backward"
+                            onPress={() => {
+                                videoController.playPrev();
+                            }}
+                        />
                     </View>
                     <View style={styles.videoButton}>
                         <Button
@@ -137,15 +141,20 @@ export function LocalVideo({ localVideoClass }: { localVideoClass: LocalVideoCla
                                     return;
                                 }
                                 if (status.isPlaying) {
-                                    localVideoClass.pause();
+                                    videoController.pause();
                                 } else {
-                                    localVideoClass.play();
+                                    videoController.play();
                                 }
                             }}
                         />
                     </View>
                     <View style={styles.videoButton}>
-                        <Button title="forward" onPress={localVideoClass.playNext} />
+                        <Button
+                            title="forward"
+                            onPress={() => {
+                                videoController.playNext();
+                            }}
+                        />
                     </View>
                 </View>
             </View>

@@ -1,4 +1,4 @@
-import { CaiyunTranslator, YoudaoFreeTranslator } from '../components/localVideoPlayer/translate/translator';
+import { CaiyunTranslator, YoudaoFreeTranslator } from './translator';
 
 class UserConfig {
     public caiyunToken = '';
