@@ -1,4 +1,4 @@
-import { AVPlaybackStatus, ResizeMode, Video } from 'expo-av';
+import { AVPlaybackStatus, ResizeMode, Video, Audio } from 'expo-av';
 import { useEffect, useRef, useState } from 'react';
 import { Button, View, StyleSheet, Text } from 'react-native';
 import { VideoController } from '../VideoController';
@@ -26,6 +26,9 @@ export function LocalVideo({ videoController }: { videoController: VideoControll
     const dispatch = useAppDispatch();
 
     useEffect(() => {
+        Audio.setAudioModeAsync({
+            staysActiveInBackground: true
+        });
         videoController.video = videoRef.current!;
         loadRecord();
 
