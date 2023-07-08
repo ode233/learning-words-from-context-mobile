@@ -85,7 +85,7 @@ export function LocalVideo({ videoController }: { videoController: VideoControll
 
     async function loadSubtitle(uri: string) {
         let text = await FileSystem.readAsStringAsync(uri);
-        videoController.createSubtitleController(text);
+        videoController.initSubtitleController(text);
         videoController.setOntimeupdate((status: AVPlaybackStatus) => {
             if (!status.isLoaded || !videoController.subtitleController) {
                 return;

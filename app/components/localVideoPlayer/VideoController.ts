@@ -46,7 +46,7 @@ export class VideoController {
         await this.play();
     }
 
-    public async createSubtitleController(text: string) {
+    public async initSubtitleController(text: string) {
         this.subtitleController = new SubtitleController(text);
     }
 
